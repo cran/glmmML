@@ -51,9 +51,11 @@ glmmML <- function(formula,
     model.matrix(mt, mf, contrasts)
 
   p <- NCOL(X)
-  cat("p = ", p, "\n")
+ 
   Y <- model.response(mf, "numeric")
   offset <- model.offset(mf)
+
+  if (NCOL(Y) >  1) stop("Response must be univariate")
   
   if (!is.null(offset) && length(offset) != NROW(Y)) 
     stop(paste("Number of offsets is", length(offset), ", should equal", 

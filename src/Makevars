@@ -1,3 +1,5 @@
 PKG_CFLAGS = -DR -Wall -pedantic -g
 PKG_FFLAGS = -O -g
 ##PKG_LIBS = -llapack -lcblas -lf77blas -latlas
+PKG_LIBS = $(BLAS_LIBS)
+

@@ -190,7 +190,7 @@ static void update(int level,
 	h += pip[i];
     }
 
-    /* Add into the loglik; We allow *loglig = -Inf!! */
+    /* Add into the loglik; We allow *loglik = -Inf!! */
     *loglik += log(h);
 
     if (level == 0) {

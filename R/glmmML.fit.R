@@ -23,14 +23,24 @@ glmmML.fit <- function (X, Y,
   aic <- family$aic
   linkinv <- family$linkinv
   mu.eta <- family$mu.eta
+  
   if (!is.function(variance) || !is.function(linkinv)) 
     stop("illegal `family' argument")
-                      
+
   if (is.null(start.coef)){
     start.coef <- numeric(p) # Start values equal to zero,
+    if (family$family == "binomial"){
+      start.coef[1] <- log(mean(Y) / (1 - mean(Y)))
+    }else if (family$family == "poisson"){
+      start.coef[1] <- log(mean(Y))
+    }else{ ## this is a proviso!!
+      start.coef[1] <- mean(Y)
+    }
+                           
   }else{                   
     if (length(start.coef) != p) stop("beta.start has wrong length")
   }
+  
   if (mixed) {
     if (is.null(start.sigma)){
       start.sigma <- 0.5 ## More sofisticated choice is = ?

@@ -125,6 +125,7 @@ void glmm_ml(int *family,
 	      mask, abstol, reltol, nREPORT,
 	      ext, &fncount, &grcount, &fail);
 	*convergence = (fail == 0);
+
 	fun1(bdim, b, gr, ext);
 	if(*trace){
 	    printf("Max log likelihood after vmmin: %f\n", -Fmin);
