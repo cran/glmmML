@@ -1,0 +1,3 @@
+glmmML                  Generalized Linear Models with random intercept
+glmmML.fit              Generalized Linear Model with random intercept
+print.glmmML            Prints a 'glmmML' object.
