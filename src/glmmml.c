@@ -47,6 +47,7 @@ void glmm_ml(int *family,
     double *b;
     double *gr;
     int bdim;
+    int nr_maxit = 0;
 
     if (*family == 0){
 	P = &P_logit;
@@ -128,15 +129,15 @@ void glmm_ml(int *family,
 
 	fun1(bdim, b, gr, ext);
 	if(*trace){
-	    printf("Max log likelihood after vmmin: %f\n", -Fmin);
+	    Rprintf("Max log likelihood after vmmin: %f\n", -Fmin);
 	    printf("Gradients: ");
 	    for (i = 0; i < bdim; i++){
-		printf(" %f, ", -ext->gr[i]);
+		Rprintf(" %f, ", -ext->gr[i]);
 	    }
-	    printf("\n");
+	    Rprintf("\n");
 	}
 
-	nr_opt(bdim, b, &Fmin, mask, ext, *epsilon, *maxit, *trace);
+	nr_opt(bdim, b, &Fmin, mask, ext, *epsilon, nr_maxit, *trace);
 	*loglik = Fmin;
 	for (i = 0; i < *p; i++){
 	    beta[i] = b[i];

@@ -22,6 +22,11 @@ C     'sqrt(2*pi)' factor in the standard normal density.
 
         IMPLICIT DOUBLE PRECISION (A-H,O-Z)
         DIMENSION X(N),W(N)
+C     To silence the compiler:
+        z = 0.0
+        hf = 0.0
+        hd = 0.0
+
         HN=1.0D0/N
         ZL=-1.1611D0+1.46D0*N**0.5
         DO 40 NR=1,N/2

@@ -33,17 +33,26 @@ typedef struct
 }
 Exts;
 
-void logistic(int *method,
-	      int *bdim, 
-	      double *beta, /* beta[bdim - 1] == log(sigma) */
-	      double *x,
-	      int *y,
-	      int *fam_size,
-	      int *n_fam,
-	      int *n_points, /* No. of pts in Gauss-Hermite quadrature */
-	      double *Fmin,
-	      double *hessian, /* bdim x bdim */
-	      int *convergence);
-    
-#endif
+void glmm_ml(int *family,
+             int *method,
+             int *p, 
+             double *start_beta,
+             double *start_sigma,
+             double *x, /* Now p x (\sum_1_{n_fam} fam_size[i]) */
+             int *y,
+             double *offset,
+             int *fam_size,
+             int *n_fam,
+             int *n_points, /* No. of pts in Gauss-Hermite quadrature */
+             double *epsilon,
+             int *maxit,
+             int *trace,
+             double *beta,
+             double *sigma,
+             double *loglik,
+             double *variance,
+             double *frail,
+             double *mu,
+             int *convergence);
 
+#endif

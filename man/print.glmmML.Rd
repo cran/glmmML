@@ -52,4 +52,3 @@ function (x, digits = max(3, getOption("digits") - 3), na.print = "",
   }
 }
 \keyword{print}% at least one, from doc/KEYWORDS
-

@@ -1,4 +1,4 @@
-glmmML <- function(formula,
+glmmboot <- function(formula,
                    family = binomial,
                    data,
                    cluster,
@@ -6,10 +6,9 @@ glmmML <- function(formula,
                    na.action,
                    offset,
                    start.coef = NULL,
-                   start.sigma = NULL,
                    control = glm.control(epsilon = 1.e-8,
                        maxit = 100, trace = FALSE),
-                   n.points = 16){
+                   boot = 0){
 
     method <- 1 ## Always vmmin! 1 if vmmin, 0 otherwise
     if (!method) stop("Use default method (the only available at present)")
@@ -32,7 +31,7 @@ glmmML <- function(formula,
     
     mf$family <- mf$start.coef <- mf$start.sigma <- NULL
     mf$control <- mf$maxit <- mf$boot <- NULL
-    mf$n.points <- mf$method <- mf$start.coef <- mf$start.sigma <- NULL
+    mf$n.points <- mf$method <- mf$start.coef <- NULL
     mf[[1]] <- as.name("model.frame") # turn into a call to model.frame
     mf <- eval(mf, environment(formula)) # run model.frame
     
@@ -57,7 +56,6 @@ glmmML <- function(formula,
     offset <- model.offset(mf)
  
     cluster <- mf$"(cluster)"
-    ##    return(clus)
     
     if (NCOL(Y) >  1) stop("Response must be univariate")
     
@@ -65,55 +63,31 @@ glmmML <- function(formula,
         stop(paste("Number of offsets is", length(offset), ", should equal", 
                    NROW(Y), "(number of observations)"))
     
-    mixed <- ( !is.null(cluster) ) && ( n.points >= 2 )
-    
-    fit <- glmmML.fit(X, Y,
-                      start.coef,
-                      start.sigma,
-                      mixed,
-                      cluster,
-                      offset,
-                      family,
-                      n.points,
-                      control,
-                      method,
-                      intercept = ( attr(mt, "intercept") > 0)
-                      )
-    
-    if (!fit$convergence) return(list(convergence = fit$convergence))
-    bdim <- p + 1
-    res <- list()
+    ## Remove eventual intercept from X.
+    ## Taken care of thru separate intercepts for each 'cluster'.
+    if (!is.na(coli <- match("(Intercept)", colnames(X))))
+        X <- X[, -coli, drop = FALSE]
 
-    res$boot <- FALSE
-    res$convergence <- as.logical(fit$convergence)
-    res$aic <- -2 * fit$loglik + 2 * (p + as.integer(mixed))
-    res$variance <- fit$coef.variance
-    if (mixed){
-        res$sigma <- fit$sigma
-        res$sigma.sd <- sqrt(fit$sigma.vari)
-    }else{
-        res$sigma = 0
-        res$sigma.sd = 0
-    }
-    res$coefficients <- fit$beta
-    res$deviance <- fit$deviance
-    ##   options(show.error.messages = FALSE)
-    ##  vari <- try(solve(-res$hessian))
-    ##  if(is.numeric(vari)){
-    ##    se <- sqrt(diag(vari))
-    ##  }else{
-    ##    se <- rep(NA, p + 1)
-    ##  }
-    res$df.residual <- fit$df.residual
-    res$sd <- sqrt(diag(res$variance))
-    names(res$sd) <- names(res$coefficients)
-    res$mixed <- mixed
-    if (mixed){
-        res$frail <- fit$frail
-    }
+    fortran <- TRUE
+    res <- glmmbootFit(X, Y,
+                       start.coef,
+                       cluster,
+                       offset,
+                       family,
+                       control,
+                       method,
+                       boot,
+                       fortran)
+    
+    res$mixed <- FALSE
+    res$deviance <- -2 * res$logLik
+    nvars <- NCOL(X) + length(unique(cluster))
+    res$df.residual <- length(Y) - nvars
+    res$aic <- res$deviance + 2 * nvars
+    res$boot <- TRUE
     res$call <- cl
     names(res$coefficients) <- c(colnames(X))
-    class(res) <- "glmmML"
+    class(res) <- "glmmboot"
     res
 }
 

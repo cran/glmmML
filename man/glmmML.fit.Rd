@@ -7,7 +7,9 @@ This function is called by \code{glmmML}, but it can also be called
 directly by the user.
 }
 \usage{
-glmmML.fit(X, Y, start.coef = NULL, start.sigma = NULL, mixed = FALSE, cluster = NULL, offset = rep(0, nobs), family = binomial(), n.points = 16, control = glm.control(), method, intercept = TRUE)
+glmmML.fit(X, Y, start.coef = NULL, start.sigma = NULL, mixed = FALSE,
+cluster = NULL, offset = rep(0, nobs), family = binomial(), n.points =
+16, control = glm.control(), method, intercept = TRUE, boot = 0)
 }
 %- maybe also `usage' for other objects documented here.
 \arguments{
@@ -25,6 +27,7 @@ glmmML.fit(X, Y, start.coef = NULL, start.sigma = NULL, mixed = FALSE, cluster =
   \item{control}{Control of the iterations. See \code{\link{glm.control}}}
   \item{method}{Which optimizer? Only choice is "vmmin".}
   \item{intercept}{Logical. If TRUE, an intercept is fitted.}
+  \item{boot}{Integer. If > 0, bootstrapping with \code{boot} replicates.}
 }
 \details{
 "vmmin" is followed by some Newton-Raphson steps, until convergence. As

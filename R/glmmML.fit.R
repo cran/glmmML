@@ -8,7 +8,8 @@ glmmML.fit <- function (X, Y,
                         n.points = 16,
                         control = glm.control(),
                         method,
-                        intercept = TRUE){
+                        intercept = TRUE,
+                        boot = 0){
   
   X <- as.matrix(X)
   conv <- FALSE
@@ -79,7 +80,7 @@ glmmML.fit <- function (X, Y,
   n.fam <- length(fam.size)
   
 
-  if (family$family == "binomial"){
+ if (family$family == "binomial"){
     if (family$link == "logit"){
       fam <- 0
     }else if (family$link == "cloglog"){

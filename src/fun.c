@@ -700,7 +700,9 @@ void nr_opt(int bdim, double *beta, double *loglik, int *mask,
     double *det;
     int job = 11;
     int pos_def;
+    double *c_hess;
 
+    c_hess = Calloc(bdim * bdim, double);
     det = Calloc(2, double);
 
     p = ext->p;
@@ -779,12 +781,17 @@ void nr_opt(int bdim, double *beta, double *loglik, int *mask,
 	fprev = *loglik;
 	fun2(bdim, beta, loglik, gr, hess, ex);
 	if (*loglik < fprev){
-	    printf("Warning: Decreasing loglik!!!!!!!!!!!!!!!!!!!!!!!\n");
+	    Rprintf("Warning: Decreasing loglik!!!!!!!!!!!!!!!!!!!!!!!\n");
 	}
     }
 
     /* Note: __packed__ form (should use pos. definite versions?) */
     /* F77_CALL(dpptrf)(&u, &(bdim), hess, &info); */
+
+    for ( m = 0; m < bdim * bdim; m++){
+	c_hess[m] = hess[m];
+    }
+    F77_CALL(dpoco)(hess, &bdim, &true_bdim, &rcond, work, &info);
     if (info == 0){
 	F77_CALL(dpodi)(hess, &bdim, &true_bdim, det, &job);
 
@@ -794,9 +801,14 @@ void nr_opt(int bdim, double *beta, double *loglik, int *mask,
 	    }
 	}
     }else{
-	printf("No inversion in [nr_opt]\n");
+	Rprintf("info = %d\n", info);
+	for ( m = 0; m < bdim * bdim; m++){
+	    hess[m] = c_hess[m];
+	}
+	warning("Hessian non-positive definite. No variance!");
     }
 
+    Free(c_hess);
     Free(work);
     Free(ipiv);
     Free(db);
