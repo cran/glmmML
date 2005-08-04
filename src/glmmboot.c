@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <R_ext/Applic.h>
+#include <R_ext/Linpack.h>
 
 #include "glmmboot.h"
 #include "bfun.h"
@@ -37,11 +37,13 @@ void glmm_boot(int *family,
 	       double *offset,
 	       int *fam_size,
 	       int *n_fam,
+	       int *conditional,
 	       double *epsilon,
 	       int *maxit,
 	       int *trace,
 	       int *boot,
 	       double *beta,
+	       double *predicted,
 	       double *loglik,
 	       double *hessian,
 	       double *frail,
@@ -180,8 +182,27 @@ void glmm_boot(int *family,
 	frail[i] = ext->gamma[i];
     }
 
+/* Done in calling R function.... 
+    if (*family <= 1){
+	for (j = 0; j < ext->n; j++)
+	    predicted[j] = P(ext->x_beta[j], 1);
+
+    }else{
+	for (j = 0; j < ext->n; j++)
+	    predicted[j] = exp(ext->x_beta[j]);
+    }
+*/
     bfun_hess(*p, beta, hessian, ext);
 
+/*
+    Rprintf("Hessian...\n\n");
+    for (i = 0; i < *p; i++){
+	for (j = 0; j < *p; j++){
+	    Rprintf("%f  ", hessian[i * (*p)+ j]);
+	}
+	Rprintf("\n");
+    }
+*/
     upper = 0;
 
 /************** Bootstrapping starts *****************************/
@@ -191,12 +212,23 @@ void glmm_boot(int *family,
 	    if ((i / 10) * 10 == i)
 		printf("********************* Replicate No. No. %d\n", i);
 	}
-	permute(ext->n, ki, ki_tmp);
-	for (j = 0; j < ext->n; j++){
-	    ext->y[j] = y[ki[j]];
-	    ext->x[j] = x + ki[j] * (ext->p);
-	    ext->offset[j] = offset[ki[j]];
-	    ext->cluster[j] = cluster[ki[j]];
+	if (*conditional){
+/* Conditional bootstrap */
+	    permute(ext->n, ki, ki_tmp);
+	    for (j = 0; j < ext->n; j++){
+		ext->y[j] = y[ki[j]];
+		ext->x[j] = x + ki[j] * (ext->p);
+		ext->offset[j] = offset[ki[j]];
+		ext->cluster[j] = cluster[ki[j]];
+	    }
+	}else{
+	    if (*family <= 1){ /* Bernoulli */
+		for (j = 0; j < ext->n; j++)
+		    ext->y[j] = rbinom(1, predicted[j]);
+	    }else{
+		for (j = 0; j < ext->n; j++) /* Poisson */
+		    ext->y[j] = rpois(predicted[j]);
+	    }
 	}
 /* Restore beta as start values: */
 	for ( j = 0; j < *p; j++) b[j] = beta[j];

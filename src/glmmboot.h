@@ -3,6 +3,7 @@
 
 #ifndef MATHLIB_STANDALONE
 #include <R.h>
+#include <Rmath.h>
 /* #include <R_ext/RS.h> */
 #else
 #include "testa.h"
@@ -43,11 +44,13 @@ void glmm_boot(int *family,
 	       double *offset,
 	       int *fam_size,
 	       int *n_fam,
+	       int *conditional,
 	       double *epsilon,
 	       int *maxit,
 	       int *trace,
 	       int *boot,
 	       double *beta,
+	       double *predicted,
 	       double *loglik,
 	       double *variance,
 	       double *frail,

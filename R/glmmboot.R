@@ -1,14 +1,15 @@
 glmmboot <- function(formula,
-                   family = binomial,
-                   data,
-                   cluster,
-                   subset,
-                   na.action,
-                   offset,
-                   start.coef = NULL,
-                   control = glm.control(epsilon = 1.e-8,
-                       maxit = 100, trace = FALSE),
-                   boot = 0){
+                     family = binomial,
+                     data,
+                     cluster,
+                     subset,
+                     na.action,
+                     offset,
+                     conditional = FALSE,
+                     start.coef = NULL,
+                     control = glm.control(epsilon = 1.e-8,
+                     maxit = 100, trace = FALSE),
+                     boot = 0){
 
     method <- 1 ## Always vmmin! 1 if vmmin, 0 otherwise
     if (!method) stop("Use default method (the only available at present)")
@@ -30,7 +31,7 @@ glmmboot <- function(formula,
     ## get a copy of the call; result: a list.
     
     mf$family <- mf$start.coef <- mf$start.sigma <- NULL
-    mf$control <- mf$maxit <- mf$boot <- NULL
+    mf$control <- mf$maxit <- mf$boot <- mf$conditional <- NULL
     mf$n.points <- mf$method <- mf$start.coef <- NULL
     mf[[1]] <- as.name("model.frame") # turn into a call to model.frame
     mf <- eval(mf, environment(formula)) # run model.frame
@@ -65,6 +66,8 @@ glmmboot <- function(formula,
     
     ## Remove eventual intercept from X.
     ## Taken care of thru separate intercepts for each 'cluster'.
+    ## Weck: NOW,  31 jan 2005, we change that! ##
+    
     if (!is.na(coli <- match("(Intercept)", colnames(X))))
         X <- X[, -coli, drop = FALSE]
 
@@ -74,6 +77,7 @@ glmmboot <- function(formula,
                        cluster,
                        offset,
                        family,
+                       conditional,
                        control,
                        method,
                        boot,

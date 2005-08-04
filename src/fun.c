@@ -4,7 +4,7 @@
 #include "glmmml.h"
 #include "fun.h"
 #include <Rmath.h>
-#include <R_ext/Applic.h>
+#include <R_ext/Linpack.h>
 
 extern P_fun *P;
 extern G_fun *G;

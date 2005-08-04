@@ -7,7 +7,7 @@
 }
 \usage{
 glmmboot(formula, family = binomial, data, cluster, subset, na.action,
-offset, start.coef = NULL,
+offset, conditional = FALSE, start.coef = NULL,
 control = glm.control(epsilon = 1e-08, maxit = 100, trace = FALSE), boot = 0)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -27,7 +27,9 @@ control = glm.control(epsilon = 1e-08, maxit = 100, trace = FALSE), boot = 0)
     to be used in the fitting process.}
   \item{na.action}{See glm.}
   \item{offset}{this can be used to specify an a priori known component to be
-          included in the linear predictor during fitting.}
+    included in the linear predictor during fitting.}
+  \item{conditional}{Is the bootstap performed conditional on the total numer
+    of successes?}
   \item{start.coef}{starting values for the parameters in the linear predictor.
  Defaults to zero.}
   \item{control}{Controls the convergence criteria. See

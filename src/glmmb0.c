@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <R_ext/Applic.h>
+#include <R_ext/Linpack.h>
 
 #include "glmmboot.h"
 #include "bfun.h"
@@ -34,8 +34,10 @@ void glmm_boot0(int *family,
 		double *offset,
 		int *fam_size,
 		int *n_fam,
+		int *conditional,
 		int *trace,
 		int *boot,
+		double *predicted,
 		double *loglik,
 		double *frail,
 		double *boot_p,
@@ -136,9 +138,14 @@ void glmm_boot0(int *family,
 
     *loglik = -Fmin;
 
-    for (i = 0; i < ext->n_fam; i++){
+    for (i = 0; i < ext->n_fam; i++)
 	frail[i] = ext->gamma[i];
-    }
+
+/* Gone for now; predicted comes from calling R function
+    if (ext->family <= 1){ 
+	for (j = 0; j < ext->n; j++)
+	    predicted[j] = ext->pred[j];
+*/
 
     upper = 0;
 
@@ -147,11 +154,21 @@ void glmm_boot0(int *family,
     for (i = 0; i < *boot; i++){
 	if ((i / 10) * 10 == i)
 	    printf("****************************** Replicate No. %d\n", i);
-	permute(ext->n, ki, ki_tmp);
-	for (j = 0; j < ext->n; j++){
-	    ext->y[j] = y[ki[j]];
-	    ext->offset[j] = offset[ki[j]];
-	    ext->cluster[j] = cluster[ki[j]];
+	if (*conditional){
+	    permute(ext->n, ki, ki_tmp);
+	    for (j = 0; j < ext->n; j++){
+		ext->y[j] = y[ki[j]];
+		ext->offset[j] = offset[ki[j]];
+		ext->cluster[j] = cluster[ki[j]];
+	    }
+	}else{
+	    if (*family <= 1){
+		for (j = 0; j < ext->n; j++)
+		    ext->y[j] = rbinom(1, predicted[j]);
+	    }else{
+		for (j = 0; j < ext->n; j++)
+		    ext->y[j] = rpois(predicted[j]);
+	    }		
 	}
 
 	Fmin = bfun(ext->p, b, ext);

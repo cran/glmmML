@@ -3,17 +3,27 @@ glmmbootFit <- function (X, Y,
                          cluster = rep(1, length(Y)),                        
                          offset = rep(0, length(Y)),
                          family = binomial(),
+                         conditional = FALSE,
                          control = glm.control(),
                          method,
-                         boot, fortran = TRUE){
+                         boot,
+                         fortran = TRUE){
 
     X <- as.matrix(X)
+
+    predicted <- glm.fit(X, Y,
+                         start = start.coef,
+                         offset = offset,
+                         family = family,
+                         control = control,
+                         intercept = TRUE
+                         )$fitted.values
 
     if (is.null(offset)) offset <- rep(0, length(Y))
     p <- ncol(X)
     if (is.null(start.coef)){
         start.coef <- numeric(p) # Start values equal to zero,
-        if (FALSE){
+        ## if (FALSE){
         if (family$family == "binomial"){
             start.coef[1] <- log(mean(Y) / (1 - mean(Y)))
         }else if (family$family == "poisson"){
@@ -21,7 +31,7 @@ glmmbootFit <- function (X, Y,
         }else{ ## this is a proviso!!
             start.coef[1] <- mean(Y)
         }
-    }
+    ##}
     }else{                   
         if (length(start.coef) != p) stop("beta.start has wrong length")
     }
@@ -52,8 +62,7 @@ glmmbootFit <- function (X, Y,
     ## cat("nFam = ", nFam, "\n")
 
     if (fortran){
-        if (NCOL(X)){
-            means <- numeric(p)
+        if (p >= 1){
             means <- colMeans(X)
             X <- scale(X, center = TRUE, scale = FALSE)
     
@@ -63,16 +72,18 @@ glmmbootFit <- function (X, Y,
                       as.integer(p),
                       as.double(start.coef),
                       as.integer(cluster),
-                      as.double(t(X)),       ## Note! ##
+                      as.double(t(X)),       # Note! #
                       as.integer(Y),
                       as.double(offset),
                       as.integer(famSize),
                       as.integer(nFam),
+                      as.integer(conditional),
                       as.double(control$epsilon),
                       as.integer(control$maxit),
                       as.integer(control$trace),
                       as.integer(boot),
                       beta = double(p),
+                      predicted = as.double(predicted), # Watch up! #
                       loglik = double(1),
                       hessian = double(p * p),
                       frail = double(nFam),
@@ -91,7 +102,7 @@ glmmbootFit <- function (X, Y,
 
             return(res)
         }else{ # A null model:
-            ## Center the covariates so we avoid (some) numeric problems: 
+
             fit <- .C("glmm_boot0",
                       as.integer(fam),
                       as.integer(method),
@@ -103,10 +114,12 @@ glmmbootFit <- function (X, Y,
                       as.double(offset),
                       as.integer(famSize),
                       as.integer(nFam),
+                      as.integer(conditional),
                       ##as.double(control$epsilon),
                       ##as.integer(control$maxit),
                       as.integer(control$trace),
                       as.integer(boot),
+                      predicted = as.double(predicted),
                       ##beta = double(p),
                       loglik = double(1),
                       ##hessian = double(p * p),

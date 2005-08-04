@@ -5,7 +5,8 @@
 #include "fun.h"
 #include "bfun.h"
 #include <Rmath.h>
-#include <R_ext/Applic.h>
+#include "GB_zeroin.h"
+#include <R_ext/Linpack.h>
 
 extern P_fun *P;
 extern G_fun *G;
@@ -57,9 +58,10 @@ double bfun(int p, double *b, void *ex){
     }
 
 /* Now get the gamma's: */
+    
     indx = 0;
     if (ext->family <= 1){ /* binomial family */
-	for (i = 0; i < ext->n_fam; i++){
+	for (i = 0; i < ext->n_fam; i++){  /* NOT Excluding first family!! */
 	    ytot = 0;
 	    for (j = 0; j < ext->fam_size[i]; j++)
 		ytot += ext->y[indx + j];
@@ -71,7 +73,6 @@ double bfun(int p, double *b, void *ex){
 		ext->gamma[i] = 1000;  /* +inf */
 	    }else{
 		ext->fam_out[i] = 0;
-		
 		ext->gamma[i] = get2_gam(ext->fam_size[i], 
 					 (lin + indx),
 					 ytot);
@@ -79,7 +80,7 @@ double bfun(int p, double *b, void *ex){
 	    indx += ext->fam_size[i];
 	}
     }else{ /* Poisson; ext->family == 2 */
-	for (i = 0; i < ext->n_fam; i++){
+	for (i = 1; i < ext->n_fam; i++){ /* Excluding first family!! */
 	    ytot = 0;
 	    for (j = 0; j < ext->fam_size[i]; j++)
 		ytot += ext->y[indx + j];
@@ -89,13 +90,13 @@ double bfun(int p, double *b, void *ex){
 	    }else{
 		ext->fam_out[i] = 0;
 		ext->gamma[i] = get3_gam(ext->fam_size[i],
-					  (lin + indx),
-					  ytot);
+					 (lin + indx),
+					 ytot);
 	    }
 	    indx += ext->fam_size[i];
 	}
     }
-	    
+
 /* Now get the log likelihood: */
     loglik = 0.0;
     indx = -1;
@@ -112,7 +113,7 @@ double bfun(int p, double *b, void *ex){
     }
 
     return(-loglik); /* Return: -loglikelihood */
-}
+    }
 
 void bfun_gr(int n, double *b, double *gr, void *ex){
     int i;
@@ -365,7 +366,7 @@ double get2_gam(int n, /* family size */
 
     Tol = 0.0;
     Maxit = 25;
-    res = R_zeroin(ax, bx, &gam_fun, extra, &Tol, &Maxit);
+    res = GB_zeroin(ax, bx, &gam_fun, extra, &Tol, &Maxit);
     Free(extra);
     return(res);
 }
