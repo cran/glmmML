@@ -10,7 +10,7 @@ integration via Gauss-Hermite quadrature.
 glmmML(formula, family = binomial, data, cluster, subset, na.action, 
 offset, start.coef = NULL, start.sigma = NULL,
 control = glm.control(epsilon = 1e-08, maxit = 100, trace = FALSE),
-n.points = 16) 
+n.points = 16, boot = 0) 
 }
 %- maybe also `usage' for other objects documented here.
 \arguments{
@@ -38,6 +38,11 @@ n.points = 16)
   \code{\link{glm.control}} for details.} 
   \item{n.points}{Number of points in the Gauss-Hermite quadrature. If
     n.points == 1, an ordinary glm is fitted.}
+  \item{boot}{Do you want a bootstrap estimate of cluster effect? The default
+    is \emph{No} (\code{boot = 0}). If you want to say yes, enter a
+    positive integer here. It should be equal to the number of bootstrap
+    samples you want to draw. A recomended \emph{minimum value} is
+    \code{boot = 2000}.}
 }
 \details{
 After the 'vmmin' function has converged, an ordinary Newton-Raphson

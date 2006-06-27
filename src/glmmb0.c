@@ -153,7 +153,8 @@ void glmm_boot0(int *family,
 
     for (i = 0; i < *boot; i++){
 	if ((i / 10) * 10 == i)
-	    printf("****************************** Replicate No. %d\n", i);
+	    if (*trace)
+		printf("****************************** Replicate No. %d\n", i);
 	if (*conditional){
 	    permute(ext->n, ki, ki_tmp);
 	    for (j = 0; j < ext->n; j++){

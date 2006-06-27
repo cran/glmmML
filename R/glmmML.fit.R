@@ -79,7 +79,16 @@ glmmML.fit <- function (X, Y,
   fam.size <- as.vector(table(cluster))
   n.fam <- length(fam.size)
   
-
+  glmFit <- glm.fit(X, Y,
+                    start = start.coef,
+                    offset = offset,
+                    family = family,
+                    control = control##,
+                    ##intercept = with.intercept,
+                    )
+  predicted <- glmFit$fitted.values
+  cluster.null.deviance <- glmFit$deviance
+  
  if (family$family == "binomial"){
     if (family$link == "logit"){
       fam <- 0
@@ -99,6 +108,7 @@ glmmML.fit <- function (X, Y,
             as.integer(method),
             as.integer(p),
             as.double(start.coef),
+            as.integer(cluster),
             as.double(start.sigma),
             as.double(t(X)),       ### Note CAREFULLY (03-01-09)!!!
             as.integer(Y),
@@ -109,13 +119,18 @@ glmmML.fit <- function (X, Y,
             as.double(control$epsilon),
             as.integer(control$maxit),
             as.integer(control$trace),
+            as.integer(boot),
+            as.double(predicted),
             beta = double(p),  ## Return values from here.
             sigma = double(1),
             loglik = double(1),
             variance = double((p + 1) * (p + 1)),
             frail = double(n.fam),
             mu = double(nobs),
+            bootP = double(1),
+            bootLog = double(boot), 
             convergence = integer(1),
+            info = integer(1),
             PACKAGE = "glmmML"
             )  
 
@@ -146,12 +161,17 @@ glmmML.fit <- function (X, Y,
   }
   
   aic.model <- -2 * fit$loglik + 2 * nvars
-
+  if (boot){
+      bootP <- fit$bootP
+  }else{
+      bootP <- NA
+  }
   list(beta = fit$beta,
        sigma = fit$sigma,
        loglik = fit$loglik,
        coef.variance = vari[1:p, 1:p, drop = FALSE],
        sigma.variance = sigma.vari,
+       bootP = bootP,
        frail = fit$frail,
        residuals = residuals,
        fitted.values = fit$mu, 
@@ -162,5 +182,6 @@ glmmML.fit <- function (X, Y,
        df.residual = NROW(Y) - NCOL(X) - as.integer(mixed),
        df.null = NROW(Y) - as.integer(intercept),
        #y = y,
-       convergence = fit$convergence)
+       convergence = fit$convergence,
+       info = fit$info) # 'info' coming from 'nr_opt'!
 }

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <R_ext/Linpack.h>
+#include <R_ext/Applic.h>
 
 #include "glmmboot.h"
 #include "bfun.h"
@@ -206,12 +207,12 @@ void glmm_boot(int *family,
     upper = 0;
 
 /************** Bootstrapping starts *****************************/
-
+ 
     for (i = 0; i < *boot; i++){
-	if (*trace){
+	/* if (*trace){ */
 	    if ((i / 10) * 10 == i)
-		printf("********************* Replicate No. No. %d\n", i);
-	}
+		printf("********************* Replicate No. %d\n", i);
+	    /* } */
 	if (*conditional){
 /* Conditional bootstrap */
 	    permute(ext->n, ki, ki_tmp);

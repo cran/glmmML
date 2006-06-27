@@ -35,7 +35,7 @@ void fun2(int pp1,
 	  void *ex);
 
 void nr_opt(int bdim, double *beta, double *loglik, int *mask, 
-	    Exts *ext, double epsilon, int maxit, int trace);
+	    Exts *ext, double epsilon, int maxit, int *info, int trace);
 
 typedef double P_fun(double, int);
 

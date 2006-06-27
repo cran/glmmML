@@ -58,6 +58,12 @@ glmmboot <- function(formula,
  
     cluster <- mf$"(cluster)"
     
+    no.cluster <- (missing(cluster) || is.null(cluster) ||
+                   (length(unique(cluster)) <= 1))
+    if (no.cluster){
+        stop("No (or constant) 'cluster'; consider using 'glm'")
+    }    
+
     if (NCOL(Y) >  1) stop("Response must be univariate")
     
     if (!is.null(offset) && length(offset) != NROW(Y)) 
@@ -67,9 +73,10 @@ glmmboot <- function(formula,
     ## Remove eventual intercept from X.
     ## Taken care of thru separate intercepts for each 'cluster'.
     ## Weck: NOW,  31 jan 2005, we change that! ##
+    ## Weck: NOW,  6 jun 2006, we move it to glmmbootFit! ##
     
-    if (!is.na(coli <- match("(Intercept)", colnames(X))))
-        X <- X[, -coli, drop = FALSE]
+    ##if (!is.na(coli <- match("(Intercept)", colnames(X))))
+    ##    X <- X[, -coli, drop = FALSE]
 
     fortran <- TRUE
     res <- glmmbootFit(X, Y,
@@ -79,18 +86,20 @@ glmmboot <- function(formula,
                        family,
                        conditional,
                        control,
-                       method,
                        boot,
+                       method,
                        fortran)
     
-    res$mixed <- FALSE
+    res$mixed <- FALSE # ??????????????????
     res$deviance <- -2 * res$logLik
-    nvars <- NCOL(X) + length(unique(cluster))
+    nvars <- NCOL(X) - 1 + length(unique(cluster))
     res$df.residual <- length(Y) - nvars
     res$aic <- res$deviance + 2 * nvars
+    res$boot_rep <- res$boot 
     res$boot <- TRUE
     res$call <- cl
-    names(res$coefficients) <- c(colnames(X))
+    if (!is.null(res$coefficients))
+      names(res$coefficients) <- c(colnames(X))[-1]
     class(res) <- "glmmboot"
     res
 }

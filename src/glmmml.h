@@ -3,6 +3,7 @@
 
 #ifndef MATHLIB_STANDALONE
 #include <R.h>
+#include <Rmath.h>
 /* #include <R_ext/RS.h> */
 #else
 #include "testa.h"
@@ -17,19 +18,19 @@ typedef struct
     int n;               /* = sum _0^(n_fam - 1) fam_size[i] */
     int p;               /* No. of covariates _including_    */ 
                          /* the constant (if any)            */
-    double *x;           /* n x p                            */
+    int *cluster;        /* n                                */
+    double **x;          /* n x p NOTE: check carefully **!! */
     double *offset;      /* n                                */
+    int *ki;             /* n                                */
     double *x_beta;      /* <- x %*% beta                    */
     double *gr;          /* p + 1                            */
     double *hessian;     /* (p+1) x (p+1)                    */
     int *y;              /* n-vector: binary response (0-1). */
-    int *id;             /* n-vector.                        */
     int n_fam;           /* No. of families.                 */
     int *fam_size;       /* n_fam-vector.                    */
     int n_points;        /* No. of Gauss-Hermite points.     */
     double *weights;     /* n_points-vector.                 */
     double *zeros;       /* n_points-vector.                 */
-
 }
 Exts;
 
@@ -37,6 +38,7 @@ void glmm_ml(int *family,
              int *method,
              int *p, 
              double *start_beta,
+	     int *cluster,
              double *start_sigma,
              double *x, /* Now p x (\sum_1_{n_fam} fam_size[i]) */
              int *y,
@@ -47,12 +49,17 @@ void glmm_ml(int *family,
              double *epsilon,
              int *maxit,
              int *trace,
-             double *beta,
+	     int *boot,
+	     double *predicted,
+	     double *beta,
              double *sigma,
              double *loglik,
              double *variance,
              double *frail,
              double *mu,
-             int *convergence);
+	     double *boot_p,
+	     double* boot_log,
+             int *convergence,
+	     int *info);
 
 #endif

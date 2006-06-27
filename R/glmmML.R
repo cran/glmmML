@@ -9,7 +9,8 @@ glmmML <- function(formula,
                    start.sigma = NULL,
                    control = glm.control(epsilon = 1.e-8,
                        maxit = 100, trace = FALSE),
-                   n.points = 16){
+                   n.points = 16,
+                   boot = 0){
 
     method <- 1 ## Always vmmin! 1 if vmmin, 0 otherwise
     if (!method) stop("Use default method (the only available at present)")
@@ -77,24 +78,33 @@ glmmML <- function(formula,
                       n.points,
                       control,
                       method,
-                      intercept = ( attr(mt, "intercept") > 0)
+                      intercept = ( attr(mt, "intercept") > 0),
+                      boot
                       )
     
     if (!fit$convergence) return(list(convergence = fit$convergence))
+    if (fit$info) return(list(info = fit$info,
+                              convergence = fit$convergence,
+                              sigma = fit$sigma,
+                              coefficients = fit$beta,
+                              deviance = fit$deviance)
+                         )
     bdim <- p + 1
     res <- list()
 
-    res$boot <- FALSE
+    res$boot.rep<- boot
+    res$boot <- (boot > 0)
     res$convergence <- as.logical(fit$convergence)
     res$aic <- -2 * fit$loglik + 2 * (p + as.integer(mixed))
     res$variance <- fit$coef.variance
     if (mixed){
         res$sigma <- fit$sigma
-        res$sigma.sd <- sqrt(fit$sigma.vari)
+        res$sigma.sd <- fit$sigma.vari
     }else{
         res$sigma = 0
         res$sigma.sd = 0
     }
+    res$bootP <- fit$bootP
     res$coefficients <- fit$beta
     res$deviance <- fit$deviance
     ##   options(show.error.messages = FALSE)

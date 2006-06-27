@@ -1,16 +1,72 @@
-glmmbootFit <- function (X, Y, 
+\name{glmmbootFit}
+\alias{glmmbootFit}
+%- Also NEED an '\alias' for EACH other topic documented here.
+\title{Generalized Linear Models with fixed effects grouping}
+\description{
+'glmmbootFit' is the workhorse in the function \code{glmmboot}. It is
+suitable to call instead of 'glmmboot', e.g. in simulations.
+}
+\usage{
+glmmbootFit(X, Y, start.coef = NULL, cluster = rep(1, length(Y)),
+offset = rep(0, length(Y)), family = binomial(),
+conditional = FALSE, control = glm.control(),
+boot = 0, method = 1, fortran = TRUE)
+}
+%- maybe also 'usage' for other objects documented here.
+\arguments{
+  \item{X}{The design matrix (n * p).}
+  \item{Y}{The response vector of length n.}
+  \item{start.coef}{start values for the parameters in the linear
+    predictor (except the intercept).}
+  \item{cluster}{Factor indicating which items are correlated.}
+  \item{offset}{this can be used to specify an a priori known component to be
+    included in the linear predictor during fitting.}
+  \item{family}{Currently, the only valid values are \code{binomial} and
+  \code{poisson}. The binomial family allows for the \code{logit} and
+  \code{cloglog} links, but can only be represented as binary data.}
+  \item{conditional}{Is the bootstrap performed conditional on the given
+  responses and covariates?}
+  \item{control}{Controls the convergence criteria. See
+  \code{\link{glm.control}} for details.} 
+  \item{boot}{number of bootstrap replicates. If equal to zero, no test
+    of significance of the grouping factor is performed.}
+  \item{method}{Not used for the moment.}
+  \item{fortran}{Not used for the moment.}
+}
+\details{
+
+}
+\value{
+  ~Describe the value returned
+  If it is a LIST, use
+  \item{comp1 }{Description of 'comp1'}
+  \item{comp2 }{Description of 'comp2'}
+  ...
+}
+\references{ ~put references to the literature/web site here ~ }
+\author{ ~~who you are~~ }
+\note{ ~~further notes~~ 
+
+ ~Make other sections like Warning with \section{Warning }{....} ~
+}
+\seealso{ ~~objects to See Also as \code{\link{help}}, ~~~ }
+\examples{
+##---- Should be DIRECTLY executable !! ----
+##-- ==>  Define data, use random,
+##--	or do  help(data=index)  for the standard data sets.
+
+## The function is currently defined as
+function (X, Y, 
                          start.coef = NULL, 
                          cluster = rep(1, length(Y)),                        
                          offset = rep(0, length(Y)),
                          family = binomial(),
                          conditional = FALSE,
                          control = glm.control(),
-                         boot = 0,
-                         method = 1,
+                         method,
+                         boot,
                          fortran = TRUE){
 
-    method <- 1
-    fortran <- TRUE
     X <- as.matrix(X)
 
     coli <- match("(Intercept)", colnames(X))
@@ -107,7 +163,7 @@ glmmbootFit <- function (X, Y,
                         bootP = fit$bootP)
             res$variance <- solve(-matrix(fit$hessian, nrow = p, ncol = p))
             res$sd <- sqrt(diag(res$variance))
-            res$boot.rep <- boot
+            res$boot_rep <- boot
 
             return(res)
         }else{ # A null model:
@@ -196,4 +252,7 @@ glmmbootFit <- function (X, Y,
              frail.p = p.value
              )
     }
+  }
 }
+\keyword{regression}% at least one, from doc/KEYWORDS
+\keyword{nonlinear}% __ONLY ONE__ keyword per line

@@ -28,8 +28,8 @@ control = glm.control(epsilon = 1e-08, maxit = 100, trace = FALSE), boot = 0)
   \item{na.action}{See glm.}
   \item{offset}{this can be used to specify an a priori known component to be
     included in the linear predictor during fitting.}
-  \item{conditional}{Is the bootstap performed conditional on the total numer
-    of successes?}
+  \item{conditional}{Is the bootstap performed conditional on the given
+    responses and covariates?}
   \item{start.coef}{starting values for the parameters in the linear predictor.
  Defaults to zero.}
   \item{control}{Controls the convergence criteria. See
@@ -38,8 +38,11 @@ control = glm.control(epsilon = 1e-08, maxit = 100, trace = FALSE), boot = 0)
     of significance of the grouping factor is performed.}
 }
 \details{
-The simulation is performed by making random permutations of the
-grouping factor and comparing the maximized loglikelihoods. The
+The simulation is performed either by (\code{conditional = FALSE})
+  simulate new response vectors from the fitted probabilities without
+  clustering, or by (\code{conditional = TRUE}) making random
+  permutations of the  
+grouping factor, and comparing the maximized loglikelihoods. The
 maximizations are performed by profiling out the grouping factor. It is
 a very fast procedure, compared to \code{\link{glm}}, when the grouping
 factor has many levels. 

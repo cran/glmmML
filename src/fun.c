@@ -166,7 +166,7 @@ static void update(int level,
     
     if (level < 0) return;
 
-    factor = 1.0;
+    factor = 1.0;  
 
     sigma = exp(beta[p]);
 
@@ -199,7 +199,7 @@ static void update(int level,
     }
 
     if (h <= 0.0) { /* We don't allow h == 0.0 in the following! */
-	printf("h = 0.0; trying to fix...\n");
+	Rprintf("h = 0.0; trying to fix...\n");
 	factor = 2.0 * factor;
 	h = 0.0;
 	count = 0;
@@ -327,6 +327,7 @@ static void update(int level,
 	tmp += pip[i] * xG[i + m * ext->n_points] *
 	    (1.0 + xG[i + k * ext->n_points]);
     }
+
     hbb[m + k * (p + 1)] = tmp;
     tmp = 0.0; 
     for (i = 0; i < ext->n_points; i++){
@@ -429,7 +430,7 @@ void frail_fun(int pp1,
     for (i = 0; i < ext->n; i++){
 	tmp = ext->offset[i]; 
 	for (j = 0; j < ext->p; j++){
-	    tmp += beta[j] * ext->x[j + i * ext->p];
+	    tmp += beta[j] * ext->x[i][j];
 	}
 	ext->x_beta[i] = tmp;
     }
@@ -444,7 +445,7 @@ void frail_fun(int pp1,
 */
     start = 0;
     for (i = 0; i < ext->n_fam; i++){
-	x = ext->x + start * ext->p;
+	x = ext->x[start]; /* check this! */
 	frail[i] = frail_mean(level,
 			      ext->p,
 			      beta,
@@ -512,7 +513,7 @@ double fun(int pp1,
     for (i = 0; i < ext->n; i++){
 	tmp = ext->offset[i]; 
 	for (j = 0; j < ext->p; j++){
-	    tmp += beta[j] * ext->x[j + i * ext->p];
+	    tmp += beta[j] * ext->x[i][j]; /* check this! */
 	}
 	ext->x_beta[i] = tmp;
     }
@@ -527,7 +528,7 @@ double fun(int pp1,
 */
     start = 0;
     for (i = 0; i < ext->n_fam; i++){
-	x = ext->x + start * ext->p;
+	x = ext->x[start];  /* check this! */
 	update(level,
 	       ext->p,
 	       beta,
@@ -541,7 +542,7 @@ double fun(int pp1,
 	       ext);
 	start += ext->fam_size[i];
     }
-/*    printf("[fun]; loglik = %f\n", loglik); */
+    /* printf("[fun]; loglik = %f\n", loglik); */ 
     return ( -loglik ); /* Note: minimizing!!! */
 }
 
@@ -576,14 +577,14 @@ void fun1(int pp1,
     for (i = 0; i < ext->n; i++){
 	tmp = ext->offset[i]; 
 	for (j = 0; j < ext->p; j++){
-	    tmp += beta[j] * ext->x[j + i * ext->p];
+	    tmp += beta[j] * ext->x[i][j]; /* ceck this! */
 	}
 	ext->x_beta[i] = tmp;
     }
     
     start = 0;
     for (i = 0; i < ext->n_fam; i++){
-	x = ext->x + start * ext->p;
+	x = ext->x[start]; /* check this! */
 	update(level,
 	       ext->p,
 	       beta,
@@ -636,14 +637,14 @@ void fun2(int pp1,
     for (i = 0; i < ext->n; i++){
 	tmp = ext->offset[i]; 
 	for (j = 0; j < ext->p; j++){
-	    tmp += beta[j] * ext->x[j + i * ext->p];
+	    tmp += beta[j] * ext->x[i][j]; /* check this! */
 	}
 	ext->x_beta[i] = tmp;
     }
     
     start = 0;
     for (i = 0; i < ext->n_fam; i++){
-	x = ext->x + start * ext->p;
+	x = ext->x[start]; /* check this! */
 	update(level,
 	       ext->p,
 	       beta,
@@ -665,13 +666,14 @@ void fun2(int pp1,
 
    for (i = 0; i < pp1 * pp1; i++){
 	hessian[i] = -hessian[i];
+	/* Rprintf("hessian = %f\n", hessian[i]); */
     }
-
+   /* Rprintf("\n"); */
 }
 
 
 void nr_opt(int bdim, double *beta, double *loglik, int *mask, 
-	    Exts *ext, double epsilon, int maxit, int trace){
+	    Exts *ext, double epsilon, int maxit, int *info, int trace){
       /* Start a Newton-Raphson thing: */
     
     double fstart, fprev;
@@ -685,7 +687,7 @@ void nr_opt(int bdim, double *beta, double *loglik, int *mask,
     int one = 1;
     int conver = 0;
 
-    int info = 1;
+/*    int info = 1; */
     double L1;
     int i;
 
@@ -701,6 +703,8 @@ void nr_opt(int bdim, double *beta, double *loglik, int *mask,
     int job = 11;
     int pos_def;
     double *c_hess;
+
+    *info = 1;
 
     c_hess = Calloc(bdim * bdim, double);
     det = Calloc(2, double);
@@ -732,11 +736,11 @@ void nr_opt(int bdim, double *beta, double *loglik, int *mask,
 
 	pos_def = 0;
 	while (!pos_def){
-	    F77_CALL(dpoco)(hess, &bdim, &true_bdim, &rcond, work, &info);
+	    F77_CALL(dpoco)(hess, &bdim, &true_bdim, &rcond, work, info);
 	    
-	    if (info){
+	    if (*info){
 		printf("Hessian not positive definite.\n");
-		printf("info = %d\n", info);
+		printf("info = %d\n", *info);
 		if (true_bdim == bdim){
 		    fun2(bdim, beta, loglik, gr, hess, ex);
 		    printf("We try fixing sigma at %f\n", exp(beta[bdim-1]));
@@ -746,8 +750,8 @@ void nr_opt(int bdim, double *beta, double *loglik, int *mask,
 		    error("Try another start value for sigma.\n");
 		}
 		F77_CALL(dpoco)(hess, &bdim, &true_bdim, 
-				&rcond, work, &info);
-		if (info) error("Try another start value for sigma.\n");
+				&rcond, work, info);
+		if (*info) error("Try another start value for sigma.\n");
 		pos_def = 1;
 	    }else{
 		pos_def = 1;
@@ -791,8 +795,8 @@ void nr_opt(int bdim, double *beta, double *loglik, int *mask,
     for ( m = 0; m < bdim * bdim; m++){
 	c_hess[m] = hess[m];
     }
-    F77_CALL(dpoco)(hess, &bdim, &true_bdim, &rcond, work, &info);
-    if (info == 0){
+    F77_CALL(dpoco)(hess, &bdim, &true_bdim, &rcond, work, info);
+    if (*info == 0){
 	F77_CALL(dpodi)(hess, &bdim, &true_bdim, det, &job);
 
 	for (m = 0; m < bdim; m++){
@@ -801,7 +805,7 @@ void nr_opt(int bdim, double *beta, double *loglik, int *mask,
 	    }
 	}
     }else{
-	Rprintf("info = %d\n", info);
+	Rprintf("info = %d\n", *info);
 	for ( m = 0; m < bdim * bdim; m++){
 	    hess[m] = c_hess[m];
 	}

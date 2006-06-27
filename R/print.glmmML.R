@@ -25,7 +25,7 @@ print.glmmML <- function(x,
     }
     if(x$boot){
         cat("\n Bootstrap p-value for fixed mixing: ",
-        x$bootP, "(", x$boot_rep, ")\n")
+        x$bootP, paste("(", x$boot.rep, ")\n", sep = ""))
     }
     cat("\nResidual deviance:",
         format(signif(x$deviance, digits)), "on",

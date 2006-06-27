@@ -1,5 +1,6 @@
 useDynLib(glmmML)
-export(glmmboot, glmmML, glmmML.fit, print.glmmML, summary.glmmML,
+export(glmmboot, glmmbootFit, glmmML, glmmML.fit,
+       print.glmmML, summary.glmmML,
        print.glmmboot, summary.glmmboot)
 S3method(print, glmmML)
 S3method(summary, glmmML)
