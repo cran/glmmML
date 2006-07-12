@@ -7,10 +7,22 @@ glmmML <- function(formula,
                    offset,
                    start.coef = NULL,
                    start.sigma = NULL,
-                   control = glm.control(epsilon = 1.e-8,
-                       maxit = 100, trace = FALSE),
+                   control = list(epsilon = 1.e-8,
+                       maxit = 200, trace = FALSE),
                    n.points = 16,
                    boot = 0){
+
+    if (is.list(control)) {
+        if (is.null(control$epsilon))
+          control$epsilon <- 1e-08
+        if (is.null(control$maxiter))
+          control$maxit <- 200
+        if (is.null(control$trace))
+          control$trace <- FALSE
+    }
+    else {
+        stop("control must be a list")
+    }
 
     method <- 1 ## Always vmmin! 1 if vmmin, 0 otherwise
     if (!method) stop("Use default method (the only available at present)")
@@ -58,6 +70,15 @@ glmmML <- function(formula,
     offset <- model.offset(mf)
  
     cluster <- mf$"(cluster)"
+
+    no.cluster <- (missing(cluster) || is.null(cluster) ||
+                   (length(unique(cluster)) <= 1))
+    if (no.cluster){
+        warning("No (or constant) 'cluster'; consider using 'glm'")
+        return(NULL)
+    }
+
+
     ##    return(clus)
     
     if (NCOL(Y) >  1) stop("Response must be univariate")
@@ -66,8 +87,9 @@ glmmML <- function(formula,
         stop(paste("Number of offsets is", length(offset), ", should equal", 
                    NROW(Y), "(number of observations)"))
     
-    mixed <- ( !is.null(cluster) ) && ( n.points >= 2 )
-    
+    mixed <- TRUE # Not used any more, here for compatility.
+
+    if (n.points <= 0) n.points <- 1 # Should give 'Laplace'(?)
     fit <- glmmML.fit(X, Y,
                       start.coef,
                       start.sigma,
@@ -82,44 +104,39 @@ glmmML <- function(formula,
                       boot
                       )
     
-    if (!fit$convergence) return(list(convergence = fit$convergence))
-    if (fit$info) return(list(info = fit$info,
-                              convergence = fit$convergence,
-                              sigma = fit$sigma,
-                              coefficients = fit$beta,
-                              deviance = fit$deviance)
-                         )
+    if (!fit$convergence)
+      warning("'vmmin' did not converge. Increase 'maxit'?")
+##    if (fit$info) return(list(info = fit$info,
+##                              convergence = fit$convergence,
+##                              sigma = fit$sigma,
+##                              coefficients = fit$beta,
+##                              deviance = fit$deviance)
+##                         )
     bdim <- p + 1
     res <- list()
-
-    res$boot.rep<- boot
-    res$boot <- (boot > 0)
-    res$convergence <- as.logical(fit$convergence)
-    res$aic <- -2 * fit$loglik + 2 * (p + as.integer(mixed))
-    res$variance <- fit$coef.variance
-    if (mixed){
-        res$sigma <- fit$sigma
-        res$sigma.sd <- fit$sigma.vari
-    }else{
-        res$sigma = 0
-        res$sigma.sd = 0
-    }
-    res$bootP <- fit$bootP
+    res$boot <- boot
+    res$converged <- as.logical(fit$convergence)
     res$coefficients <- fit$beta
+    res$coef.sd <- fit$beta.sd
+    res$sigma <- fit$sigma
+    res$sigma.sd <- fit$sigma.sd
+    if (fit$cluster.null.deviance <= fit$deviance){
+          res$sigma = 0
+          res$sigma.sd = NA
+      }
+    res$variance <- fit$variance
+    res$aic <- fit$aic
+    names(res$coef.sd) <- names(res$coefficients)
+    
+    res$bootP <- fit$bootP
     res$deviance <- fit$deviance
-    ##   options(show.error.messages = FALSE)
-    ##  vari <- try(solve(-res$hessian))
-    ##  if(is.numeric(vari)){
-    ##    se <- sqrt(diag(vari))
-    ##  }else{
-    ##    se <- rep(NA, p + 1)
-    ##  }
+    res$mixed <- TRUE
     res$df.residual <- fit$df.residual
-    res$sd <- sqrt(diag(res$variance))
-    names(res$sd) <- names(res$coefficients)
-    res$mixed <- mixed
+    res$cluster.null.deviance <- fit$cluster.null.deviance
+    res$cluster.null.df <- fit$cluster.null.df
     if (mixed){
-        res$frail <- fit$frail
+        res$posterior.modes <- fit$post.mode
+        res$posterior.means <- fit$post.mean
     }
     res$call <- cl
     names(res$coefficients) <- c(colnames(X))

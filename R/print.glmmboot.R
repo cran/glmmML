@@ -22,7 +22,7 @@ print.glmmboot <- function(x,
         prmatrix(tmp)
     }
     
-    if (x$boot){
+    if (x$boot_rep){
         cat("\n Bootstrap p-value for fixed mixing: ",
             x$bootP, "(", x$boot_rep, ")\n")
     }

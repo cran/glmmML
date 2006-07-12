@@ -211,7 +211,7 @@ void glmm_boot(int *family,
     for (i = 0; i < *boot; i++){
 	/* if (*trace){ */
 	    if ((i / 10) * 10 == i)
-		printf("********************* Replicate No. %d\n", i);
+		printf("********************* Replicate No. No. %d\n", i);
 	    /* } */
 	if (*conditional){
 /* Conditional bootstrap */

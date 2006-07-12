@@ -1,10 +1,10 @@
 Package: glmmML
-Version: 0.28-4
-Date: 2006/06/27
+Version: 0.30-2
+Date: 2006/07/12
 Title: Generalized linear models with random intercept
 Description: A Maximum Likelihood and bootstrap approach to mixed models.
 License: GPL version 2 or newer.
-Author: Göran Broström
-Maintainer: Göran Broström <gb@stat.umu.se>
-Depends: R (>= 2.0.0)
-Packaged: Wed Jun 28 09:17:07 2006; hornik
+Author: GÃ¶ran BrostrÃ¶m
+Maintainer: GÃ¶ran BrostrÃ¶m <gb@stat.umu.se>
+Depends: R (>= 2.3.0)
+Packaged: Wed Jul 12 15:27:15 2006; gb

@@ -8,9 +8,9 @@
 #include "glmmml.h"
 
 
+
 void frail_fun(int pp1, 
 		 double *beta,
-		 double *frail,
 	       void *ex);
 
 void mu_fun(int bdim, 
@@ -43,11 +43,17 @@ typedef double G_fun(double, int);
 
 typedef double Gprim_fun(double, int);
 
+typedef double Hprim_fun(double, int);
+
 double P_logit(double x, int y); /* logit link */
     
 double G_logit(double x, int y);
 
 double Gprim_logit(double x, int y);
+
+double Hprim_logit(double x, int y);
+
+double Hbis_logit(double x, int y);
 
 double P_cloglog(double x, int y);
 
@@ -55,11 +61,17 @@ double G_cloglog(double x, int y);
 
 double Gprim_cloglog(double x, int y);
 
+double Hprim_cloglog(double x, int y);
+
 double P_poisson(double x, int y);
 
 double G_poisson(double x, int y);
 
 double Gprim_poisson(double x, int y);
+
+double Hprim_poisson(double x, int y);
+
+double Hbis_poisson(double x, int y);
 
 
 

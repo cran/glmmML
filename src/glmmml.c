@@ -9,6 +9,7 @@
 P_fun *P;
 G_fun *G;
 Gprim_fun *Gprim;
+Hprim_fun *Hprim;
 
 static void permute(int n, int *y, int *x)
 {
@@ -43,13 +44,14 @@ void glmm_ml(int *family,
 	     double *epsilon,
 	     int *maxit,
 	     int *trace,
-	     int * boot,
+	     int *boot,
 	     double *predicted,
 	     double *beta,
 	     double *sigma,
 	     double *loglik,
 	     double *variance,
-	     double *frail,
+	     double *post_mode,
+	     double *post_mean,
 	     double *mu,
 	     double *boot_p,
 	     double *boot_log,
@@ -66,35 +68,53 @@ void glmm_ml(int *family,
     int *mask;
 #endif
     Exts *ext;
-    int i, j;
+    int i, j, k, m, indx;
     
     double Fmin;
     double *b;
     double *gr;
-    int bdim;
-    int nr_maxit = 0;
-/* New in 0.28; bootstrapping: */
-    int *ki;
-    int*ki_tmp;
-    int upper;
+    double **hessian;
+    double *hess_vec;
+
+    double rcond;
+    double *det;
+    int lwork;
+    double *work;
+    int job = 11;
     char *vmax;
+
+    int bdim;
+
+/* New in 0.28; bootstrapping: */
+    int upper;
+
     int *conditional;
     int condi = 1;
 /* This is done to prepare for having conditional as an input parameter */     
     conditional = &condi;
 
+    if (*trace){
+	Rprintf("************* Entering [glmmml] **************** \n");
+	Rprintf(" p = %d\n\n", *p);
+    }
+
+    det = Calloc(2, double);
+
     if (*family == 0){
 	P = &P_logit;
 	G = &G_logit;
 	Gprim = &Gprim_logit;
+	Hprim = &Hprim_logit;
     }else if (*family == 1){
 	P = &P_cloglog;
 	G = &G_cloglog;
 	Gprim = &Gprim_cloglog;
+	Hprim = &Hprim_cloglog;
     }else if (*family == 2){
 	P = &P_poisson;
 	G = &G_poisson;
 	Gprim = &Gprim_poisson;
+	Hprim = &Hprim_poisson;
     }else{
 	error("Unknown family\n");
     }
@@ -103,27 +123,16 @@ void glmm_ml(int *family,
     reltol = abstol;
 
     bdim = *p + 1;
-
+    lwork = 11 * bdim;
+    work = Calloc(lwork, double);
     b = Calloc(bdim, double);
     gr = Calloc(bdim, double);
 
-    for (i = 0; i < *p; i++){
-	b[i] = start_beta[i];
-    }
+    hessian = Calloc(bdim, double *);
+    hess_vec = Calloc(bdim * bdim, double);
+    for (j = 0; j < bdim; j++) hessian[j] = hess_vec + j * bdim;
 
-    if (*n_points == 1){/* Put in log(sigma) */
-	b[*p] = 0.0;
-    }else{
-	b[*p] = log(*start_sigma);
-    }
-
-    mask = Calloc(bdim, int );
-    for (i = 0; i < bdim; i++){
-        mask[i] = 1;
-    }
-
-    /******** Filling in 'ext': ***********/
-
+    /**** Build up 'ext' ********************/
     ext = Calloc(1, Exts);
 
     ext->family = *family; /* == 0 for binomial(logit) */
@@ -132,66 +141,45 @@ void glmm_ml(int *family,
     for (i = 0; i < *n_fam; i++){
 	ext->n += fam_size[i];
     }
-
     ext->p = *p;
-
-    ext->cluster = Calloc(ext->n, int);
-    for (i = 0; i < ext->n; i++)
-	ext->cluster[i] = cluster[i];
-
-    /* ext->x = x; */
+    ext->cluster = cluster;
     /* Changed 2006-06-18; may have catastrophic consequences!! */
-    ext->x = Calloc(ext->n, double *);
-    for (i = 0; i < ext->n; i++){
-	ext->x[i] = x + i * (ext->p);
+    ext->x = Calloc(ext->p, double *);
+    for (i = 0; i < ext->p; i++){
+	ext->x[i] = x + i * (ext->n);
     }
     /*** Note that ext->x is not "filled"; ***/ 
     /*** only points to the right place    ***/
-
-    ext->offset = Calloc(ext->n, double);
-    for (i = 0; i < ext->n; i++){
-	ext->offset[i] = offset[i];
-    }
-
-    ext->ki = Calloc(ext->n, int);
-
-    ext->x_beta = Calloc(ext->n, double); 
-
-    ext->gr = gr;
-
-    ext->hessian = variance;
-
-    ext->y = Calloc(ext->n, int);
-    for (i = 0; i < ext->n; i++) ext->y[i] = y[i];
-
+    ext->offset = offset;
+    ext->x_beta = Calloc(ext->n, double);
+    ext->y = Calloc(ext->n, int); /* We cannot copy if bootstrapping! */
+    for (i = 0; i < ext->n; i++)
+	ext->y[i] = y[i];
     ext->n_fam = *n_fam;
     ext->fam_size = fam_size;
-
+    ext->post_mode = Calloc(*n_fam, double); 
+    ext->post_mean = Calloc(*n_fam, double); 
     ext->n_points = *n_points;
-
     ext->weights = Calloc(*n_points, double);
     ext->zeros = Calloc(*n_points, double);
-
     F77_CALL(ghq)(n_points, ext->zeros, ext->weights);  
 
-    if (ext->n_points == 1){
-	mask[ext->p] = 0;
-	b[ext->p] = 0.0;
+/******* Done with 'ext' ***************/
+
+    for (j = 0; i < *p; j++){
+	b[j] = start_beta[j];
     }
+    b[*p] = log(*start_sigma);
 
-    /******** Done filling 'ext' *************/
-
-    ki = ext->ki;
-    for (i = 0; i < ext->n; i++){
-	ki[i] = i;
+    mask = Calloc(bdim, int );
+    for (i = 0; i < bdim; i++){
+        mask[i] = 1;
     }
-    ki_tmp = Calloc(ext->n, int);
-
 
 /* Note that this performs a minimum: (!!) */
 
     if (*method){
-
+     /* *trace = 1;  Should be REMOVED!!!!!!!!!!!!!!!!!!!!!! */
 	vmmin(bdim, b, &Fmin,
 	      fun, fun1, *maxit, *trace,
 	      mask, abstol, reltol, nREPORT,
@@ -199,7 +187,7 @@ void glmm_ml(int *family,
 	*convergence = (fail == 0);
 
 	fun1(bdim, b, gr, ext);
-	fun2(bdim, b, &Fmin, ext->gr, ext->hessian, ext);
+	fun2(bdim, b, &Fmin, gr, hess_vec, ext);
 	if(*trace){
 	    Rprintf("Max log likelihood after vmmin: %f\n", -Fmin);
 	    printf("beta: ");
@@ -209,26 +197,49 @@ void glmm_ml(int *family,
 	    Rprintf("\n");
 	    printf("Gradients: ");
 	    for (i = 0; i < bdim; i++){
-		Rprintf(" %f, ", -ext->gr[i]);
+		Rprintf(" %f, ", -gr[i]);
 	    }
 	    Rprintf("\n");
-	    printf("\n");
-	    printf("hessian:\n");
+	    Rprintf("\n");
+	    Rprintf("hessian:\n");
 	    for (i = 0; i < bdim; i++){
 		for (j = 0; j < bdim; j++)
-		    printf(" %f, ", ext->hessian[i * bdim + j]);
-		printf("\n");
+		    Rprintf(" %f, ", hessian[i][j]);
+		Rprintf("\n");
 	    }
 	}
 	/* Let's avoid nr_opt! Just calculate the hessian and invert! */
+/*
 	nr_opt(bdim, b, &Fmin, mask, ext, *epsilon, nr_maxit, info, *trace); 
+*/
 	*loglik = Fmin;
 	for (i = 0; i < *p; i++){
 	    beta[i] = b[i];
 	}
 	*sigma = exp(b[*p]);
+        F77_CALL(dpoco)(*hessian, &bdim, &bdim, &rcond, work, info);
+        if (*info == 0){
+            F77_CALL(dpodi)(*hessian, &bdim, &bdim, det, &job);
+            for (m = 0; m < bdim; m++){
+                for (k = 0; k < m; k++){
+                    hessian[k][m] = hessian[m][k];
+                }
+            }
+            indx = 0;
+            for (m = 0; m < bdim; m++){
+                for (k = 0; k < bdim; k++){
+                    variance[indx] = hessian[m][k];
+                    indx++;
+                }
+            }
+
+        }else{
+            Rprintf("info = %d\n", *info);
+            warning("Hessian non-positive definite. No variance!");
+        }
+
 	if(*trace){
-	    printf("Max log likelihood after Newton-Raphson: %f\n", -Fmin);
+	    printf("Max log likelihood: %f\n", -Fmin);
 	    printf("Beta: ");
 	    for (i = 0; i < bdim; i++){
 		printf(" %f, ", b[i]);
@@ -236,53 +247,58 @@ void glmm_ml(int *family,
 	    printf("\n");
 	    printf("Gradients: ");
 	    for (i = 0; i < bdim; i++){
-		printf(" %f, ", ext->gr[i]);
+		printf(" %f, ", gr[i]);
 	    }
 	    printf("\n");
 	    printf("hessian:\n");
 	    for (i = 0; i < bdim; i++){
 		for (j = 0; j < bdim; j++)
-		    printf(" %f, ", ext->hessian[i * bdim + j]);
+		    printf(" %f, ", hessian[i][j]);
 		printf("\n");
 	    }
 	}
     }else{
 	error("Nelder-Mead not implemented (yet)\n");
     }
-    frail_fun(bdim, b, frail, ext);
+
+    frail_fun(bdim, b, ext);
     mu_fun(bdim, b, mu, ext);
 
-    if (boot > 0){
+    for (i = 0; i < ext->n_fam; i++){
+	post_mode[i] = ext->post_mode[i];
+	post_mean[i] = ext->post_mean[i];
+    }
+
+    if (*boot > 0){
 /************** Bootstrapping starts *****************************/
 	upper = 0;
 	GetRNGstate();
-
 	for (i = 0; i < *boot; i++){
 	    if (*trace){
 		if ((i / 10) * 10 == i)
 		    printf("********************* Replicate No. %d\n", i);
 	    }
-	    if (*conditional){
-/* Conditional bootstrap */
-		permute(ext->n, ki, ki_tmp);
-		for (j = 0; j < ext->n; j++){
-		    ext->y[j] = y[ki[j]];
-		    ext->x[j] = x + ki[j] * (ext->p);
-		    ext->offset[j] = offset[ki[j]];
-		    ext->cluster[j] = cluster[ki[j]];
-		}
+	 
+	    if (*family <= 1){ /* Bernoulli */
+		for (j = 0; j < ext->n; j++)
+		    ext->y[j] = rbinom(1, predicted[j]);
 	    }else{
-		if (*family <= 1){ /* Bernoulli */
-		    for (j = 0; j < ext->n; j++)
-			ext->y[j] = rbinom(1, predicted[j]);
-		}else{
-		    for (j = 0; j < ext->n; j++) /* Poisson */
-			ext->y[j] = rpois(predicted[j]);
-		}
+		for (j = 0; j < ext->n; j++) /* Poisson */
+		    ext->y[j] = rpois(predicted[j]);
 	    }
+	
 /* Restore beta as start values: */
 	    for ( j = 0; j < *p; j++) b[j] = beta[j];
-	    
+	    if (*trace){
+/*
+		Rprintf("Sampled values by cluster:\n");
+		for (i = 0; i < ext->n; i++){
+		    Rprintf("y[%d] = %d, cluster[%d] = %d\n", 
+			    i, ext->y[i], i, ext->cluster[i]);
+		}
+*/
+		Rprintf("Start value to vmmin: %f\n", fun(*p, b, ext)); 
+	    }
 	    vmax = vmaxget();
 	    vmmin(*p, b, &Fmin,
 		  fun, fun1, *maxit, *trace,
@@ -290,7 +306,14 @@ void glmm_ml(int *family,
 		  ext, &fncount, &grcount, &fail);
 	    vmaxset(vmax);
 	    *convergence = (fail == 0);
+	    if (!convergence){
+		Rprintf("No converhǵence...\n");
+	    }
 	    boot_log[i] = -Fmin;
+	    if (*trace){
+		Rprintf("boot_log[%d] = %f; loglik = %f\n", i, -Fmin, *loglik);
+		Rprintf("beta[0] = %f\n", b[0]);
+	    }
 	    if (-Fmin >= *loglik) upper++;
 	}
 	
@@ -301,20 +324,22 @@ void glmm_ml(int *family,
 	
     }
     
-    free(ki_tmp);
+    Free(mask);
 
     Free(ext->zeros);
     Free(ext->weights);
-    Free(ext->y);
+
+    Free(ext->post_mean);
+    Free(ext->post_mode);
     Free(ext->x_beta);
-    Free(ext->ki);
-    Free(ext->offset);
+    Free(ext->y);
     Free(ext->x);
-    Free(ext->cluster);
     Free(ext);
 
-    Free(mask);
-
+    Free(hessian);
+    Free(hess_vec);
     Free(gr);
     Free(b);
+    Free(work);
+    Free(det);
 }

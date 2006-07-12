@@ -7,9 +7,21 @@ glmmboot <- function(formula,
                      offset,
                      conditional = FALSE,
                      start.coef = NULL,
-                     control = glm.control(epsilon = 1.e-8,
-                     maxit = 100, trace = FALSE),
+                     control = list(epsilon = 1.e-8,
+                     maxit = 200, trace = FALSE),
                      boot = 0){
+
+    if (is.list(control)) {
+        if (is.null(control$epsilon))
+          control$epsilon <- 1e-08
+        if (is.null(control$maxit))
+          control$maxit <- 200
+        if (is.null(control$trace))
+          control$trace <- FALSE
+    }
+    else {
+        stop("control must be a list")
+    }
 
     method <- 1 ## Always vmmin! 1 if vmmin, 0 otherwise
     if (!method) stop("Use default method (the only available at present)")
@@ -61,7 +73,8 @@ glmmboot <- function(formula,
     no.cluster <- (missing(cluster) || is.null(cluster) ||
                    (length(unique(cluster)) <= 1))
     if (no.cluster){
-        stop("No (or constant) 'cluster'; consider using 'glm'")
+        warning("No (or constant) 'cluster'; consider using 'glm'")
+        return(NULL)
     }    
 
     if (NCOL(Y) >  1) stop("Response must be univariate")
@@ -95,7 +108,6 @@ glmmboot <- function(formula,
     nvars <- NCOL(X) - 1 + length(unique(cluster))
     res$df.residual <- length(Y) - nvars
     res$aic <- res$deviance + 2 * nvars
-    res$boot_rep <- res$boot 
     res$boot <- TRUE
     res$call <- cl
     if (!is.null(res$coefficients))

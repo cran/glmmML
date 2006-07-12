@@ -9,8 +9,8 @@ suitable to call instead of 'glmmboot', e.g. in simulations.
 \usage{
 glmmbootFit(X, Y, start.coef = NULL, cluster = rep(1, length(Y)),
 offset = rep(0, length(Y)), family = binomial(),
-conditional = FALSE, control = glm.control(),
-boot = 0, method = 1, fortran = TRUE)
+conditional = FALSE, control = list(epsilon = 1.e-8, maxit = 200, trace
+= FALSE), boot = 0, method = 1, fortran = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

@@ -7,9 +7,10 @@ This function is called by \code{glmmML}, but it can also be called
 directly by the user.
 }
 \usage{
-glmmML.fit(X, Y, start.coef = NULL, start.sigma = NULL, mixed = FALSE,
+glmmML.fit(X, Y, start.coef = NULL, start.sigma = NULL, mixed = TRUE,
 cluster = NULL, offset = rep(0, nobs), family = binomial(), n.points =
-16, control = glm.control(), method, intercept = TRUE, boot = 0)
+16, control = list(epsilon = 1.e-8, maxit = 200, trace = FALSE), method,
+intercept = TRUE, boot = 0) 
 }
 %- maybe also `usage' for other objects documented here.
 \arguments{
@@ -34,7 +35,7 @@ cluster = NULL, offset = rep(0, nobs), family = binomial(), n.points =
 a by-product we get the estimated variance-covariance matrix.
 }
 \value{
-  A list. For details, see the code.
+  A list. For details, see the code, and \code{glmmML}.
 }
 \references{Broström (2003)}
 \author{Göran Broström}

@@ -7,7 +7,8 @@ print.glmmML <- function(x,
     savedig <- options(digits = digits)
     on.exit(options(savedig))
     coef <- x$coefficients
-    se <- x$sd
+    se <- x$coef.sd
+
     tmp <- cbind(coef,
                  se,
                  coef/se,
@@ -24,8 +25,8 @@ print.glmmML <- function(x,
         cat("Std. Error:                                ", x$sigma.sd, "\n")
     }
     if(x$boot){
-        cat("\n Bootstrap p-value for fixed mixing: ",
-        x$bootP, paste("(", x$boot.rep, ")\n", sep = ""))
+        cat("\n Bootstrap p-value for H_0: sigma = 0: ",
+        x$bootP, "(", x$boot, ")\n")
     }
     cat("\nResidual deviance:",
         format(signif(x$deviance, digits)), "on",

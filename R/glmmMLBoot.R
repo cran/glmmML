@@ -4,10 +4,23 @@ glmmbootFit <- function (X, Y,
                          offset = rep(0, length(Y)),
                          family = binomial(),
                          conditional = FALSE,
-                         control = glm.control(),
+                         control = list(epsilon = 1.e-8, maxit = 200,
+                           trace = FALSE), 
                          boot = 0,
                          method = 1,
                          fortran = TRUE){
+
+    if (is.list(control)) {
+        if (is.null(control$epsilon))
+          control$epsilon <- 1e-08
+        if (is.null(control$maxit))
+          control$maxit <- 200
+        if (is.null(control$trace))
+          control$trace <- FALSE
+    }
+    else {
+        stop("control must be a list")
+    }
 
     method <- 1
     fortran <- TRUE
@@ -107,7 +120,7 @@ glmmbootFit <- function (X, Y,
                         bootP = fit$bootP)
             res$variance <- solve(-matrix(fit$hessian, nrow = p, ncol = p))
             res$sd <- sqrt(diag(res$variance))
-            res$boot.rep <- boot
+            res$boot_rep <- boot
 
             return(res)
         }else{ # A null model:

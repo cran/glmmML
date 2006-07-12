@@ -8,7 +8,7 @@
 \usage{
 glmmboot(formula, family = binomial, data, cluster, subset, na.action,
 offset, conditional = FALSE, start.coef = NULL,
-control = glm.control(epsilon = 1e-08, maxit = 100, trace = FALSE), boot = 0)
+control = list(epsilon = 1e-08, maxit = 200, trace = FALSE), boot = 0)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -48,11 +48,27 @@ a very fast procedure, compared to \code{\link{glm}}, when the grouping
 factor has many levels. 
 }
 \value{
-The return value is a list, an object of class 'glmmboot'.
+  The return value is a list, an object of class 'glmmboot'.
+  \item{coefficients}{Estimated regression coefficients}
+  \item{logLik}{the max log likelihood}
+  \item{cluster.null.deviance}{Deviance without the clustering}
+  \item{frail}{The estimated cluster effects}
+  \item{bootLog}{The logLik values from the bootstrap samples}
+  \item{bootP}{Bootstrap p value}
+  \item{variance}{Variance covariance matrix}
+  \item{sd}{Standard error of regression parameters}
+  \item{boot_rep}{No. of bootstrap replicates}
+  \item{mixed}{Logical}
+  \item{deviance}{Deviance}
+  \item{df.residual}{Its degrees of freedom}
+  \item{aic}{AIC}
+  \item{boot}{Logical}
+  \item{call}{The function call}
 }
 \references{ ~put references to the literature/web site here ~ }
 \author{Göran Broström}
-\note{This is a preliminary version and not well tested.}
+\note{There is no overall intercept for this model; each cluster has its
+own intercept. See \code{frail}}
 
 \seealso{\code{link{glmmML}}, \code{\link{optim}},
   \code{\link[repeated]{glmm}} in Lindsey's 

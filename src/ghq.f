@@ -75,10 +75,11 @@ C     To silence the compiler:
            X(N/2+1)=0.0D0
         ENDIF
 
-      do i = 1, n
-        w(i) = w(i) /  1.77245385091
-        x(i) = x(i) * 1.41421356237
-      enddo
+C **** Change back!
+C      do i = 1, n
+C        w(i) = w(i) /  1.77245385091
+C        x(i) = x(i) * 1.41421356237
+C      enddo
 
 
       RETURN

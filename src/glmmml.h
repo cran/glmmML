@@ -19,20 +19,37 @@ typedef struct
     int p;               /* No. of covariates _including_    */ 
                          /* the constant (if any)            */
     int *cluster;        /* n                                */
-    double **x;          /* n x p NOTE: check carefully **!! */
+    double **x;          /* p x n NOTE: check carefully **!! */
     double *offset;      /* n                                */
-    int *ki;             /* n                                */
+
     double *x_beta;      /* <- x %*% beta                    */
-    double *gr;          /* p + 1                            */
-    double *hessian;     /* (p+1) x (p+1)                    */
+    /* double *gr;          p + 1                            */
+    /* double *hessian;     (p+1) x (p+1)                    */
     int *y;              /* n-vector: binary response (0-1). */
     int n_fam;           /* No. of families.                 */
     int *fam_size;       /* n_fam-vector.                    */
+    double *post_mode;   /* n_fam-vector.                    */
+    double *post_mean;   /* n_fam-vector.                    */
     int n_points;        /* No. of Gauss-Hermite points.     */
     double *weights;     /* n_points-vector.                 */
     double *zeros;       /* n_points-vector.                 */
+
 }
 Exts;
+
+typedef struct
+{
+    int n; /* fam_size */
+    double sigma;
+    double *x_beta;
+    int *y;
+    double **x;
+    int p; /* == "Exts->p" */ 
+    int m;     /* The actual partial derivative , m = 0, ..., (p - 1)  */
+    int k;     /* The actual (second) partial derivative , */
+               /* k = 0, ..., (p - 1)  */
+}
+Family;
 
 void glmm_ml(int *family,
              int *method,
@@ -55,7 +72,8 @@ void glmm_ml(int *family,
              double *sigma,
              double *loglik,
              double *variance,
-             double *frail,
+             double *post_mode,
+             double *post_mean,
              double *mu,
 	     double *boot_p,
 	     double* boot_log,
