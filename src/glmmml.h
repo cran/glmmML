@@ -25,13 +25,14 @@ typedef struct
     double *x_beta;      /* <- x %*% beta                    */
     /* double *gr;          p + 1                            */
     /* double *hessian;     (p+1) x (p+1)                    */
-    int *y;              /* n-vector: binary response (0-1). */
+    double *yw;          /* n-vector:  response * weights.   */
+    double *weights;     /* n-vector:                        */
     int n_fam;           /* No. of families.                 */
     int *fam_size;       /* n_fam-vector.                    */
     double *post_mode;   /* n_fam-vector.                    */
     double *post_mean;   /* n_fam-vector.                    */
     int n_points;        /* No. of Gauss-Hermite points.     */
-    double *weights;     /* n_points-vector.                 */
+    double *wc;          /* n_points-vector.                 */
     double *zeros;       /* n_points-vector.                 */
 
 }
@@ -42,7 +43,8 @@ typedef struct
     int n; /* fam_size */
     double sigma;
     double *x_beta;
-    int *y;
+    double *yw;
+    double *weights;
     double **x;
     int p; /* == "Exts->p" */ 
     int m;     /* The actual partial derivative , m = 0, ..., (p - 1)  */
@@ -56,9 +58,11 @@ void glmm_ml(int *family,
              int *p, 
              double *start_beta,
 	     int *cluster,
+	     double *weights,
              double *start_sigma,
+	     int *fix_sigma,
              double *x, /* Now p x (\sum_1_{n_fam} fam_size[i]) */
-             int *y,
+             double *y,
              double *offset,
              int *fam_size,
              int *n_fam,
@@ -67,6 +71,7 @@ void glmm_ml(int *family,
              int *maxit,
              int *trace,
 	     int *boot,
+	     int *prior,
 	     double *predicted,
 	     double *beta,
              double *sigma,

@@ -8,8 +8,14 @@
 
 P_fun *P;
 G_fun *G;
-Gprim_fun *Gprim;
-Hprim_fun *Hprim;
+H_fun *H;
+I_fun *I;
+K_fun *K;
+logpr *logprior;
+d_logpr *d_logprior;
+d2_logpr *d2_logprior;
+d3_logpr *d3_logprior;
+d4_logpr *d4_logprior;
 
 static void permute(int n, int *y, int *x)
 {
@@ -34,9 +40,11 @@ void glmm_ml(int *family,
 	     int *p, 
 	     double *start_beta,
 	     int *cluster,
+	     double *weights,
 	     double *start_sigma,
+	     int *fix_sigma,
 	     double *x, /* Now p x (\sum_1_{n_fam} fam_size[i]) */
-	     int *y,
+	     double *y, /* NOTE! Change from 'int' !! */
 	     double *offset,
 	     int *fam_size,
 	     int *n_fam,
@@ -45,6 +53,7 @@ void glmm_ml(int *family,
 	     int *maxit,
 	     int *trace,
 	     int *boot,
+	     int *prior, /* 0 = Normal, 1 = logistic */
 	     double *predicted,
 	     double *beta,
 	     double *sigma,
@@ -66,6 +75,12 @@ void glmm_ml(int *family,
     int grcount;
     int fail;
     int *mask;
+    int lmm = 5;
+    double *lower, *upper;
+    int * nbd;
+    double factr = 1e7;
+    double pgtol = 0.0;
+    char msg[60];
 #endif
     Exts *ext;
     int i, j, k, m, indx;
@@ -86,7 +101,7 @@ void glmm_ml(int *family,
     int bdim;
 
 /* New in 0.28; bootstrapping: */
-    int upper;
+    int upp;
 
     int *conditional;
     int condi = 1;
@@ -96,6 +111,7 @@ void glmm_ml(int *family,
     if (*trace){
 	Rprintf("************* Entering [glmmml] **************** \n");
 	Rprintf(" p = %d\n\n", *p);
+	/* Rprintf(" method = %d\n\n", *method); */ 
     }
 
     det = Calloc(2, double);
@@ -103,28 +119,56 @@ void glmm_ml(int *family,
     if (*family == 0){
 	P = &P_logit;
 	G = &G_logit;
-	Gprim = &Gprim_logit;
-	Hprim = &Hprim_logit;
+	H = &H_logit;
+	I = &I_logit;
+	K = &K_logit;
     }else if (*family == 1){
 	P = &P_cloglog;
 	G = &G_cloglog;
-	Gprim = &Gprim_cloglog;
-	Hprim = &Hprim_cloglog;
+	H = &H_cloglog;
+	I = &I_cloglog;
+	K = &K_cloglog;
     }else if (*family == 2){
 	P = &P_poisson;
 	G = &G_poisson;
-	Gprim = &Gprim_poisson;
-	Hprim = &Hprim_poisson;
+	H = &H_poisson;
+	I = &I_poisson;
+	K = &K_poisson;
     }else{
 	error("Unknown family\n");
     }
-	
+
+    if (*prior == 1){
+	logprior = &logprior_logistic;
+	d_logprior = &d_logprior_logistic;
+	d2_logprior = &d2_logprior_logistic;
+	d3_logprior = &d3_logprior_logistic;
+	d4_logprior = &d4_logprior_logistic;
+    }else{
+	logprior = &logprior_normal;
+	d_logprior = &d_logprior_normal;
+	d2_logprior = &d2_logprior_normal;
+	d3_logprior = &d3_logprior_normal;
+	d4_logprior = &d4_logprior_normal;
+    }
+
     abstol = *epsilon;
     reltol = abstol;
 
     bdim = *p + 1;
     lwork = 11 * bdim;
     work = Calloc(lwork, double);
+
+    lower = Calloc(bdim, double);
+    upper = Calloc(bdim, double);
+    nbd = Calloc(bdim, int);
+    for (j = 0; j < bdim; j++){
+	nbd[j] = 0;
+	upper[j] = 0.0;
+	lower[j] = 0.0;
+    }
+    nbd[bdim - 1] = 1;
+    lower[bdim - 1] = 0.5e-10;
     b = Calloc(bdim, double);
     gr = Calloc(bdim, double);
 
@@ -152,113 +196,144 @@ void glmm_ml(int *family,
     /*** only points to the right place    ***/
     ext->offset = offset;
     ext->x_beta = Calloc(ext->n, double);
-    ext->y = Calloc(ext->n, int); /* We cannot copy if bootstrapping! */
-    for (i = 0; i < ext->n; i++)
-	ext->y[i] = y[i];
+    ext->yw = Calloc(ext->n, double); /* We cannot copy if bootstrapping! */
+    for (i = 0; i < ext->n; i++){
+	ext->yw[i] = y[i] * weights[i]; /* NOTE !!! */
+    }
+    /* error("Enough!!!"); */
+    ext->weights = weights;
     ext->n_fam = *n_fam;
     ext->fam_size = fam_size;
     ext->post_mode = Calloc(*n_fam, double); 
     ext->post_mean = Calloc(*n_fam, double); 
     ext->n_points = *n_points;
-    ext->weights = Calloc(*n_points, double);
+    ext->wc = Calloc(*n_points, double);
     ext->zeros = Calloc(*n_points, double);
-    F77_CALL(ghq)(n_points, ext->zeros, ext->weights);  
+    F77_CALL(ghq)(n_points, ext->zeros, ext->wc);  
 
 /******* Done with 'ext' ***************/
 
     for (j = 0; i < *p; j++){
 	b[j] = start_beta[j];
     }
-    b[*p] = log(*start_sigma);
+/* NOTE; here we do not log sigma!!! */
+    b[*p] = *start_sigma;
 
     mask = Calloc(bdim, int );
     for (i = 0; i < bdim; i++){
         mask[i] = 1;
     }
+    if (*fix_sigma) 
+	mask[bdim - 1] = 0; /* sigma fixed during optimization */
 
-/* Note that this performs a minimum: (!!) */
+/*  Note that this performs a minimum: (!!) */
+/*
+    for (i = 0; i < bdim; i++) Rprintf("b[%d] = %f\n", i, b[i]);
+    fun2(bdim, b, &Fmin, gr, hess_vec, ext);
+    Rprintf("Fmin = %f\n", Fmin);
+    for (i = 0; i < bdim; i++) Rprintf("gr[%d] = %f\n", i, gr[i]);
+    for (i = 0; i < bdim * bdim; i++) Rprintf("hess[%d] = %f\n", 
+						  i, hess_vec[i]);
+*/  
+/*    error("Let us stop here"); */
 
-    if (*method){
-     /* *trace = 1;  Should be REMOVED!!!!!!!!!!!!!!!!!!!!!! */
+    /*  if (*method || *fix_sigma){ */ /* If sigma fixed: use vmmin! */
+	vmax = vmaxget();
+	
 	vmmin(bdim, b, &Fmin,
 	      fun, fun1, *maxit, *trace,
 	      mask, abstol, reltol, nREPORT,
 	      ext, &fncount, &grcount, &fail);
-	*convergence = (fail == 0);
+	vmaxset(vmax);
+/*    }else{
+	vmax = vmaxget();
+	lbfgsb(bdim, lmm, b, lower, upper, nbd, &Fmin,
+	      fun, fun1, &fail, ext, factr, pgtol, 
+	       &fncount, &grcount, *maxit, msg, *trace,
+	      nREPORT);
+	vmaxset(vmax);
+	} */
+    *convergence = (fail == 0);
+    if (fail){
+	Rprintf("[glmmml] fail = %d\n", fail);
+	error(msg);
+    }
 
-	fun1(bdim, b, gr, ext);
-	fun2(bdim, b, &Fmin, gr, hess_vec, ext);
-	if(*trace){
-	    Rprintf("Max log likelihood after vmmin: %f\n", -Fmin);
-	    printf("beta: ");
-	    for (i = 0; i < bdim; i++){
-		Rprintf(" %f, ", b[i]);
-	    }
-	    Rprintf("\n");
-	    printf("Gradients: ");
-	    for (i = 0; i < bdim; i++){
-		Rprintf(" %f, ", -gr[i]);
-	    }
-	    Rprintf("\n");
-	    Rprintf("\n");
-	    Rprintf("hessian:\n");
-	    for (i = 0; i < bdim; i++){
-		for (j = 0; j < bdim; j++)
-		    Rprintf(" %f, ", hessian[i][j]);
-		Rprintf("\n");
-	    }
+    fun1(bdim, b, gr, ext);
+    fun2(bdim, b, &Fmin, gr, hess_vec, ext);
+    if(*trace){
+	Rprintf("Max log likelihood after vmmin: %f\n", -Fmin);
+	printf("beta: ");
+	for (i = 0; i < bdim; i++){
+	    Rprintf(" %f, ", b[i]);
 	}
-	/* Let's avoid nr_opt! Just calculate the hessian and invert! */
+	Rprintf("\n");
+	printf("Gradients: ");
+	for (i = 0; i < bdim; i++){
+	    Rprintf(" %f, ", -gr[i]);
+	}
+	Rprintf("\n");
+	Rprintf("\n");
+	Rprintf("hessian:\n");
+	for (i = 0; i < bdim; i++){
+	    for (j = 0; j < bdim; j++)
+		Rprintf(" %f, ", hessian[i][j]);
+	    Rprintf("\n");
+	}
+    }
+    /* Let's avoid nr_opt! Just calculate the hessian and invert! */
 /*
-	nr_opt(bdim, b, &Fmin, mask, ext, *epsilon, nr_maxit, info, *trace); 
+  nr_opt(bdim, b, &Fmin, mask, ext, *epsilon, nr_maxit, info, *trace); 
 */
-	*loglik = Fmin;
-	for (i = 0; i < *p; i++){
-	    beta[i] = b[i];
+    *loglik = Fmin;
+    for (i = 0; i < *p; i++){
+	beta[i] = b[i];
+    }
+    if (!(*fix_sigma)){
+	*sigma = b[*p]; /* NOTE!!!!!!!! */
+	F77_CALL(dpoco)(*hessian, &bdim, &bdim, &rcond, work, info);
+	if (*info == 0){
+	    F77_CALL(dpodi)(*hessian, &bdim, &bdim, det, &job);
+	    for (m = 0; m < bdim; m++){
+		for (k = 0; k < m; k++){
+		    hessian[k][m] = hessian[m][k];
+		}
+	    }
+	    
+	}else{
+	    Rprintf("info = %d\n", *info);
+	    warning("Hessian non-positive definite. No variance!");
 	}
-	*sigma = exp(b[*p]);
-        F77_CALL(dpoco)(*hessian, &bdim, &bdim, &rcond, work, info);
-        if (*info == 0){
-            F77_CALL(dpodi)(*hessian, &bdim, &bdim, det, &job);
-            for (m = 0; m < bdim; m++){
-                for (k = 0; k < m; k++){
-                    hessian[k][m] = hessian[m][k];
-                }
-            }
-            indx = 0;
-            for (m = 0; m < bdim; m++){
-                for (k = 0; k < bdim; k++){
-                    variance[indx] = hessian[m][k];
-                    indx++;
-                }
-            }
-
-        }else{
-            Rprintf("info = %d\n", *info);
-            warning("Hessian non-positive definite. No variance!");
-        }
-
-	if(*trace){
-	    printf("Max log likelihood: %f\n", -Fmin);
-	    printf("Beta: ");
-	    for (i = 0; i < bdim; i++){
-		printf(" %f, ", b[i]);
-	    }
+    }
+    
+    indx = 0;
+    for (m = 0; m < bdim; m++){ /* Hessian if fix_sigma */
+	for (k = 0; k < bdim; k++){
+	    variance[indx] = hessian[m][k];
+	    indx++;
+	}
+    }
+    
+    if(*trace){
+	printf("Max log likelihood: %f\n", -Fmin);
+	printf("Beta: ");
+	for (i = 0; i < bdim; i++){
+	    printf(" %f, ", b[i]);
+	}
+	printf("\n");
+	printf("Gradients: ");
+	for (i = 0; i < bdim; i++){
+	    printf(" %f, ", gr[i]);
+	}
+	if (!(*fix_sigma)){
 	    printf("\n");
-	    printf("Gradients: ");
-	    for (i = 0; i < bdim; i++){
-		printf(" %f, ", gr[i]);
-	    }
-	    printf("\n");
-	    printf("hessian:\n");
+	    printf("variance:\n");
 	    for (i = 0; i < bdim; i++){
 		for (j = 0; j < bdim; j++)
 		    printf(" %f, ", hessian[i][j]);
 		printf("\n");
 	    }
 	}
-    }else{
-	error("Nelder-Mead not implemented (yet)\n");
     }
 
     frail_fun(bdim, b, ext);
@@ -269,9 +344,9 @@ void glmm_ml(int *family,
 	post_mean[i] = ext->post_mean[i];
     }
 
-    if (*boot > 0){
+    if ((*boot > 0) & !(*fix_sigma)){
 /************** Bootstrapping starts *****************************/
-	upper = 0;
+	upp = 0;
 	GetRNGstate();
 	for (i = 0; i < *boot; i++){
 	    if (*trace){
@@ -281,10 +356,10 @@ void glmm_ml(int *family,
 	 
 	    if (*family <= 1){ /* Bernoulli */
 		for (j = 0; j < ext->n; j++)
-		    ext->y[j] = rbinom(1, predicted[j]);
+		    ext->yw[j] = rbinom((int)weights[j], predicted[j]);
 	    }else{
 		for (j = 0; j < ext->n; j++) /* Poisson */
-		    ext->y[j] = rpois(predicted[j]);
+		    ext->yw[j] = rpois(weights[j] * predicted[j]);
 	    }
 	
 /* Restore beta as start values: */
@@ -298,26 +373,38 @@ void glmm_ml(int *family,
 		}
 */
 		Rprintf("Start value to vmmin: %f\n", fun(*p, b, ext)); 
+
 	    }
-	    vmax = vmaxget();
-	    vmmin(*p, b, &Fmin,
-		  fun, fun1, *maxit, *trace,
-		  mask, abstol, reltol, nREPORT,
-		  ext, &fncount, &grcount, &fail);
-	    vmaxset(vmax);
+	    /*    if (*method){ */
+		vmax = vmaxget();
+
+		vmmin(*p, b, &Fmin,
+		      fun, fun1, *maxit, *trace,
+		      mask, abstol, reltol, nREPORT,
+		      ext, &fncount, &grcount, &fail);
+		vmaxset(vmax);
+/* Skip this for the moment! (at least!!)  }else{
+		vmax = vmaxget();
+		lbfgsb(bdim, lmm, b, lower, upper, nbd, &Fmin,
+		       fun, fun1, &fail, ext, factr, pgtol, 
+		       &fncount, &grcount, *maxit, msg, *trace,
+		       nREPORT);
+		
+		vmaxset(vmax);
+		}*/
 	    *convergence = (fail == 0);
 	    if (!convergence){
-		Rprintf("No converhǵence...\n");
+		Rprintf("No converǵence...\n");
 	    }
 	    boot_log[i] = -Fmin;
 	    if (*trace){
 		Rprintf("boot_log[%d] = %f; loglik = %f\n", i, -Fmin, *loglik);
 		Rprintf("beta[0] = %f\n", b[0]);
 	    }
-	    if (-Fmin >= *loglik) upper++;
+	    if (-Fmin >= *loglik) upp++;
 	}
 	
-	if (*boot) *boot_p = (double)upper / (double)*boot;
+	if (*boot) *boot_p = (double)upp / (double)*boot;
 	else *boot_p = 1.0;
 	
 	PutRNGstate();
@@ -327,12 +414,12 @@ void glmm_ml(int *family,
     Free(mask);
 
     Free(ext->zeros);
-    Free(ext->weights);
+    Free(ext->wc);
 
     Free(ext->post_mean);
     Free(ext->post_mode);
     Free(ext->x_beta);
-    Free(ext->y);
+    Free(ext->yw);
     Free(ext->x);
     Free(ext);
 
@@ -340,6 +427,9 @@ void glmm_ml(int *family,
     Free(hess_vec);
     Free(gr);
     Free(b);
+    Free(upper);
+    Free(lower);
+    Free(nbd);
     Free(work);
     Free(det);
 }

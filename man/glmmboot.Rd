@@ -6,7 +6,7 @@
   grouping is tested by simulation, with a bootstrap approach.
 }
 \usage{
-glmmboot(formula, family = binomial, data, cluster, subset, na.action,
+glmmboot(formula, family = binomial, data, cluster, weights, subset, na.action,
 offset, conditional = FALSE, start.coef = NULL,
 control = list(epsilon = 1e-08, maxit = 200, trace = FALSE), boot = 0)
 }
@@ -22,7 +22,8 @@ control = list(epsilon = 1e-08, maxit = 200, trace = FALSE), boot = 0)
           `environment(formula)', typically the environment from which
           `glmmML' is called.
 }
-  \item{cluster}{Factor indicating which items are correlated.}
+\item{cluster}{Factor indicating which items are correlated.}
+\item{weights}{Case weights.}
   \item{subset}{an optional vector specifying a subset of observations
     to be used in the fitting process.}
   \item{na.action}{See glm.}

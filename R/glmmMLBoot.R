@@ -1,4 +1,4 @@
-glmmbootFit <- function (X, Y, 
+glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)), 
                          start.coef = NULL, 
                          cluster = rep(1, length(Y)),                        
                          offset = rep(0, length(Y)),
@@ -26,11 +26,34 @@ glmmbootFit <- function (X, Y,
     fortran <- TRUE
     X <- as.matrix(X)
 
+    nobs <- NROW(Y)
+    if (family$family == "binomial"){ # This will be better later!
+        ## From 'binomial':
+        if (NCOL(Y) == 1) {
+            if (is.factor(Y)) Y <- Y != levels(Y)[1]
+            n <- rep.int(1, nobs)
+            if (any(Y < 0 | Y > 1)) stop("Y values must be 0 <= Y <= 1")
+            ##mustart <- (weights * Y + 0.5)/(weights + 1)
+            m <- weights * Y
+            if (any(abs(m - round(m)) > 0.001))
+              warning("non-integer #successes in a binomial glm!")
+        } else if (NCOL(Y) == 2) {
+            if (any(abs(Y - round(Y)) > 0.001))
+              warning("non-integer counts in a binomial glm!")
+            n <- Y[, 1] + Y[, 2]
+            Y <- ifelse(n == 0, 0, Y[, 1]/n)
+            weights <- weights * n
+            ##mustart <- (n * Y + 0.5)/(n + 1)
+        } else
+        stop("for the binomial family, Y must be a vector of 0 and 1's\n",
+             "or a 2 column matrix where col 1 is no. successes and col 2 is no. failures")
+        ## End of 'from binomial'.
+    }
     coli <- match("(Intercept)", colnames(X))
     with.intercept <- !is.na(coli)
 
     if (is.null(offset)) offset <- rep(0, length(Y))
-    glmFit <- glm.fit(X, Y,
+    glmFit <- glm.fit(X, Y, weights = weights,
                       start = start.coef,
                       offset = offset,
                       family = family,
@@ -93,8 +116,9 @@ glmmbootFit <- function (X, Y,
                       as.integer(p),
                       as.double(start.coef),
                       as.integer(cluster),
+                      as.double(weights),
                       as.double(t(X)),       # Note! #
-                      as.integer(Y),
+                      as.double(Y),
                       as.double(offset),
                       as.integer(famSize),
                       as.integer(nFam),
@@ -131,8 +155,8 @@ glmmbootFit <- function (X, Y,
                       ##as.integer(p),
                       ##as.double(start.coef),
                       as.integer(cluster),
-                      ##as.double(t(X)),       ## Note! ##
-                      as.integer(Y),
+                      as.double(weights),       ## Note! ##
+                      as.double(Y),
                       as.double(offset),
                       as.integer(famSize),
                       as.integer(nFam),
@@ -188,7 +212,7 @@ glmmbootFit <- function (X, Y,
         
         nvars <- length(unique(cluster))
         nvar <- length(fit$par)
-        aic.model <- 2 * fit$value + 2 * nvars
+        aic.model <- 2 * fit$value + 2 * nvars ## STRANGE ?! (nvar?)
         ## Note difference between nvar & nvars!
         n.fam <- nvar - p
         list(beta = fit$par[(n.fam + 1):nvar],

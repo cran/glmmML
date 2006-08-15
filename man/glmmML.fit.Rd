@@ -7,17 +7,22 @@ This function is called by \code{glmmML}, but it can also be called
 directly by the user.
 }
 \usage{
-glmmML.fit(X, Y, start.coef = NULL, start.sigma = NULL, mixed = TRUE,
+glmmML.fit(X, Y, weights = rep(1, NROW(Y)),
+start.coef = NULL, start.sigma = NULL,
+fix.sigma = FALSE, mixed = TRUE,
 cluster = NULL, offset = rep(0, nobs), family = binomial(), n.points =
-16, control = list(epsilon = 1.e-8, maxit = 200, trace = FALSE), method,
-intercept = TRUE, boot = 0) 
+15, control = list(epsilon = 1.e-8, maxit = 200, trace = FALSE),
+method = 0,
+intercept = TRUE, boot = 0, prior = 0) 
 }
 %- maybe also `usage' for other objects documented here.
 \arguments{
-  \item{X}{Design matrix of covariates}
-  \item{Y}{Response vector}
+  \item{X}{Design matrix of covariates.}
+  \item{Y}{Response vector. Or two-column matrix.}
+  \item{weights}{Case weights. Defaults to one.}
   \item{start.coef}{Starting values for the coefficients. }
   \item{start.sigma}{Starting value for the mixing standard deviation.}
+  \item{fix.sigma}{Should sigma be fixed at start.sigma?}
   \item{mixed}{Logical. If FALSE, an ordinary glm is fitted.}
   \item{cluster}{The clustring variable.}
   \item{offset}{The offset in the model.}
@@ -26,9 +31,11 @@ intercept = TRUE, boot = 0)
   with log link.}
   \item{n.points}{Number of points in the Gauss-hermite quadrature.}
   \item{control}{Control of the iterations. See \code{\link{glm.control}}}
-  \item{method}{Which optimizer? Only choice is "vmmin".}
+  \item{method}{Which optimizer? 0 = "lbfgsb" (default), 1 = "vmmin".}
   \item{intercept}{Logical. If TRUE, an intercept is fitted.}
-  \item{boot}{Integer. If > 0, bootstrapping with \code{boot} replicates.}
+  \item{boot}{Integer. If > 0, bootstrapping with \code{boot}
+    replicates.}
+  \item{prior}{Which prior distribution? 0 for "gaussian", 1 for "logistic".}
 }
 \details{
 "vmmin" is followed by some Newton-Raphson steps, until convergence. As

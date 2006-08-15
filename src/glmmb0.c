@@ -7,7 +7,7 @@
 
 extern P_fun *P;
 extern G_fun *G;
-extern Gprim_fun *Gprim;
+extern H_fun *H;
 
 static void permute(int n, int *y, int *x)
 {
@@ -30,7 +30,8 @@ static void permute(int n, int *y, int *x)
 void glmm_boot0(int *family,
 		int *method,
 		int *cluster,
-		int *y,
+		double *weights,
+		double *y,
 		double *offset,
 		int *fam_size,
 		int *n_fam,
@@ -66,15 +67,15 @@ void glmm_boot0(int *family,
     if (*family == 0){
 	P = &P_logit;
 	G = &G_logit;
-	Gprim = &Gprim_logit;
+	H = &H_logit;
     }else if (*family == 1){
 	P = &P_cloglog;
 	G = &G_cloglog;
-	Gprim = &Gprim_cloglog;
+	H = &H_cloglog;
     }else if (*family == 2){
 	P = &P_poisson;
 	G = &G_poisson;
-	Gprim = &Gprim_poisson;
+	H = &H_poisson;
     }else{
 	error("Unknown family\n");
     }
@@ -110,8 +111,9 @@ void glmm_boot0(int *family,
     for (i = 0; i < ext->n; i++)
 	ext->cluster[i] = cluster[i];
     ext->gamma = Calloc(ext->n_fam, double);
-    ext->y = Calloc(ext->n, int);
-    for (i = 0; i < ext->n; i++) ext->y[i] = y[i];
+    ext->yw = Calloc(ext->n, double);
+    for (i = 0; i < ext->n; i++) ext->yw[i] = y[i] * weights[i];
+    ext->weights = weights;
 /**************** Filled in ext  *************************/
 
     ki = ext->ki;
@@ -121,7 +123,7 @@ void glmm_boot0(int *family,
 	ki[i] = i;
     }
 
-    
+/* Don't need the following in a NULL model! */    
 /* Note that this searches for a minimum: (!!) */
 /*
     vmax = vmaxget();
@@ -158,17 +160,18 @@ void glmm_boot0(int *family,
 	if (*conditional){
 	    permute(ext->n, ki, ki_tmp);
 	    for (j = 0; j < ext->n; j++){
-		ext->y[j] = y[ki[j]];
+		ext->yw[j] = y[ki[j]] * weights[ki[j]];
+		ext->weights[j] = weights[j];
 		ext->offset[j] = offset[ki[j]];
 		ext->cluster[j] = cluster[ki[j]];
 	    }
 	}else{
 	    if (*family <= 1){
 		for (j = 0; j < ext->n; j++)
-		    ext->y[j] = rbinom(1, predicted[j]);
+		    ext->yw[j] = rbinom((int)weights[j], predicted[j]);
 	    }else{
 		for (j = 0; j < ext->n; j++)
-		    ext->y[j] = rpois(predicted[j]);
+		    ext->yw[j] = rpois(weights[j] * predicted[j]);
 	    }		
 	}
 
@@ -184,7 +187,7 @@ void glmm_boot0(int *family,
 
 /*    vmaxset(vmax1); */
 
-    Free(ext->y);
+    Free(ext->yw);
     Free(ext->gamma);
     Free(ext->cluster);
     Free(ext->ki);

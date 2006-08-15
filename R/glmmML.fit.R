@@ -1,17 +1,21 @@
-glmmML.fit <- function (X, Y, 
+glmmML.fit <- function (X, Y,
+                        weights = rep(1, NROW(Y)),
                         start.coef = NULL, 
                         start.sigma = NULL,
+                        fix.sigma = FALSE,
                         mixed = TRUE,
                         cluster = NULL,                        
                         offset = rep(0, nobs),
                         family = binomial(),
-                        n.points = 16,
+                        n.points = 15,
                         control = list(epsilon = 1.e-8, maxit = 200,
                           trace = FALSE),
-                        method,
+                        method = 0,
                         intercept = TRUE,
-                        boot = 0){
+                        boot = 0,
+                        prior = 0){
 
+    cat("prior = ", prior, "\n")
     if (is.list(control)) {
         if (is.null(control$epsilon))
           control$epsilon <- 1e-08
@@ -32,8 +36,34 @@ glmmML.fit <- function (X, Y,
     X <- as.matrix(X)
     conv <- FALSE
     nobs <- NROW(Y)
+
+    if (family$family == "binomial"){ # This will be better later!
+        ## From 'binomial':
+        if (NCOL(Y) == 1) {
+            if (is.factor(Y)) Y <- Y != levels(Y)[1]
+            n <- rep.int(1, nobs)
+            if (any(Y < 0 | Y > 1)) stop("Y values must be 0 <= Y <= 1")
+            ##mustart <- (weights * Y + 0.5)/(weights + 1)
+            m <- weights * Y
+            if (any(abs(m - round(m)) > 0.001))
+              warning("non-integer #successes in a binomial glm!")
+        } else if (NCOL(Y) == 2) {
+            if (any(abs(Y - round(Y)) > 0.001))
+              warning("non-integer counts in a binomial glm!")
+            n <- Y[, 1] + Y[, 2]
+            Y <- ifelse(n == 0, 0, Y[, 1]/n)
+            weights <- weights * n
+            ##mustart <- (n * Y + 0.5)/(n + 1)
+        } else
+        stop("For the binomial family, Y must be a vector of 0 and 1's\n",
+             "or a 2 column matrix where col 1 is no. successes and col 2 is no. failures")
+        ## End of 'from binomial'.
+    }else{
+        if (NCOL(Y) != 1)
+          stop("It is only the binomial family that allows two columns for Y")
+    }
     p <- NCOL(X)
-    nvars <- p + as.integer(mixed)
+    nvars <- p + as.integer(!fix.sigma)
     
     if (is.null(offset)) 
       offset <- rep(0, nobs)
@@ -72,7 +102,7 @@ glmmML.fit <- function (X, Y,
     Y <- Y[ord]
     X <- X[ord, ,drop = FALSE]
     
-    ## Center the covariates so we avoid (some) numeric problems: 
+    ## Center the covariates so we avoid (some) numerical problems: 
     if (intercept){
         if (p >= 2){
             means <- numeric(p-1)
@@ -94,6 +124,7 @@ glmmML.fit <- function (X, Y,
     n.fam <- length(fam.size)
     
     glmFit <- glm.fit(X, Y,
+                      weights,
                       start = start.coef,
                       offset = offset,
                       family = family,
@@ -113,20 +144,24 @@ glmmML.fit <- function (X, Y,
             stop("Unknown link function; only 'logit' and 'cloglog' implemented")
         }
     }else if (family$family == "poisson"){
+        if (family$link != "log")
+          stop("Wrong link function; only 'log' is implemented.")
         fam <- 2
     }else{
         stop("Unknown family; only 'binomial' and 'poisson' implemented")
     }
-    
+
     fit <- .C("glmm_ml",
               as.integer(fam),
               as.integer(method),
-              as.integer(p),
+              as.integer(p), 
               as.double(start.coef),
               as.integer(cluster),
+              as.double(weights),
               as.double(start.sigma),
+              as.integer(fix.sigma),
               as.double(X), # Note CAREFULLY (03-01-09) AND 06-07-08 (back)!!!
-              as.integer(Y),
+              as.double(Y), # Note!
               as.double(offset),
               as.integer(fam.size),
               as.integer(n.fam),
@@ -135,6 +170,7 @@ glmmML.fit <- function (X, Y,
               as.integer(control$maxit),
               as.integer(control$trace),
               as.integer(boot),
+              as.integer(prior),
               as.double(predicted),
               beta = double(p),  ## Return values from here.
               sigma = double(1),
@@ -151,6 +187,10 @@ glmmML.fit <- function (X, Y,
               )  
     if (fit$info) vari <- NULL
     else vari <- matrix(fit$variance, ncol = (p + 1))
+    if (fix.sigma){
+        vari <- vari[1:p, 1:p]
+        vari <- solve(vari)
+    }
     ## Correct the estimate of the intercept for the centering:
     if (intercept){
         if (p >= 2){
@@ -172,7 +212,8 @@ glmmML.fit <- function (X, Y,
     
     if (length(vari)){
         beta.sd <- sqrt(diag(vari[1:p, 1:p, drop = FALSE]))
-        sigma.sd <- sqrt(vari[(p + 1), (p + 1)]) * fit$sigma
+        if (fix.sigma) sigma.sd <- 0
+        else sigma.sd <- sqrt(vari[(p + 1), (p + 1)])
     }else{
         beta.sd <- NA
         sigma.sd <- NA

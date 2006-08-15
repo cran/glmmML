@@ -7,7 +7,8 @@
 suitable to call instead of 'glmmboot', e.g. in simulations.
 }
 \usage{
-glmmbootFit(X, Y, start.coef = NULL, cluster = rep(1, length(Y)),
+glmmbootFit(X, Y, weights = rep(1, NROW(Y)),
+start.coef = NULL, cluster = rep(1, length(Y)),
 offset = rep(0, length(Y)), family = binomial(),
 conditional = FALSE, control = list(epsilon = 1.e-8, maxit = 200, trace
 = FALSE), boot = 0, method = 1, fortran = TRUE)
@@ -16,6 +17,7 @@ conditional = FALSE, control = list(epsilon = 1.e-8, maxit = 200, trace
 \arguments{
   \item{X}{The design matrix (n * p).}
   \item{Y}{The response vector of length n.}
+  \item{weights}{Case weights.}
   \item{start.coef}{start values for the parameters in the linear
     predictor (except the intercept).}
   \item{cluster}{Factor indicating which items are correlated.}

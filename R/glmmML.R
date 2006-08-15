@@ -2,14 +2,18 @@ glmmML <- function(formula,
                    family = binomial,
                    data,
                    cluster,
+                   weights,
                    subset,
                    na.action,
                    offset,
+                   prior = c("gaussian", "logistic"),
                    start.coef = NULL,
                    start.sigma = NULL,
+                   fix.sigma = FALSE,
                    control = list(epsilon = 1.e-8,
                        maxit = 200, trace = FALSE),
-                   n.points = 16,
+                   method = c("Laplace", "ghq"),
+                   n.points = 1,
                    boot = 0){
 
     if (is.list(control)) {
@@ -24,8 +28,18 @@ glmmML <- function(formula,
         stop("control must be a list")
     }
 
-    method <- 1 ## Always vmmin! 1 if vmmin, 0 otherwise
-    if (!method) stop("Use default method (the only available at present)")
+    ## don't use this for the moment!
+    ## Not used:
+    
+    method <- as.numeric(method[1] == "Laplace")
+
+    if (!prior[1] %in% c("gaussian", "logistic"))
+      stop("Prior distribution not known")
+
+    prior <- as.numeric(prior[1] == "logistic")
+    ## 'gaussian' is the default
+    
+    ##if (!method) stop("Use default method (the only available at present)")
     cl <- match.call()
 
     if (is.character(family)) 
@@ -43,9 +57,9 @@ glmmML <- function(formula,
     mf <- match.call(expand.dots = FALSE)
     ## get a copy of the call; result: a list.
     
-    mf$family <- mf$start.coef <- mf$start.sigma <- NULL
-    mf$control <- mf$maxit <- mf$boot <- NULL
-    mf$n.points <- mf$method <- mf$start.coef <- mf$start.sigma <- NULL
+    mf$family <- mf$start.coef <- mf$start.sigma <- mf$fix.sigma <- NULL
+    mf$weights <- mf$control <- mf$maxit <- mf$boot <- NULL
+    mf$n.points <- mf$method <- mf$prior <- NULL
     mf[[1]] <- as.name("model.frame") # turn into a call to model.frame
     mf <- eval(mf, environment(formula)) # run model.frame
     
@@ -81,18 +95,23 @@ glmmML <- function(formula,
 
     ##    return(clus)
     
-    if (NCOL(Y) >  1) stop("Response must be univariate")
+    ##if (NCOL(Y) >  1) stop("Response must be univariate")
     
     if (!is.null(offset) && length(offset) != NROW(Y)) 
         stop(paste("Number of offsets is", length(offset), ", should equal", 
                    NROW(Y), "(number of observations)"))
     
+    
+    if (missing(weights)) weights <- rep.int(1, NROW(Y))
+    if (any(weights < 0)) stop("negative weights not allowed")
     mixed <- TRUE # Not used any more, here for compatility.
 
     if (n.points <= 0) n.points <- 1 # Should give 'Laplace'(?)
     fit <- glmmML.fit(X, Y,
+                      weights,
                       start.coef,
                       start.sigma,
+                      fix.sigma,
                       mixed,
                       cluster,
                       offset,
@@ -101,7 +120,8 @@ glmmML <- function(formula,
                       control,
                       method,
                       intercept = ( attr(mt, "intercept") > 0),
-                      boot
+                      boot,
+                      prior # gaussian by default
                       )
     
     if (!fit$convergence)
@@ -118,12 +138,13 @@ glmmML <- function(formula,
     res$converged <- as.logical(fit$convergence)
     res$coefficients <- fit$beta
     res$coef.sd <- fit$beta.sd
-    res$sigma <- fit$sigma
+    res$sigma <- abs(fit$sigma) # Note 
     res$sigma.sd <- fit$sigma.sd
-    if (fit$cluster.null.deviance <= fit$deviance){
-          res$sigma = 0
-          res$sigma.sd = NA
-      }
+    ## For the time being: Show the attained max!!!!!!!!!!!!!
+    ##if (fit$cluster.null.deviance <= fit$deviance){
+    ##      res$sigma = 0
+    ##      res$sigma.sd = NA
+    ##  }
     res$variance <- fit$variance
     res$aic <- fit$aic
     names(res$coef.sd) <- names(res$coefficients)
@@ -138,6 +159,9 @@ glmmML <- function(formula,
         res$posterior.modes <- fit$post.mode
         res$posterior.means <- fit$post.mean
     }
+    res$prior <- if (prior) "logistic" else "gaussian"
+    res$terms = mt
+    res$info <- fit$info # From inverting the hessian! Should be zero.
     res$call <- cl
     names(res$coefficients) <- c(colnames(X))
     class(res) <- "glmmML"

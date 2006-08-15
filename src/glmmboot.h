@@ -29,8 +29,9 @@ typedef struct
 			 /*       +1 all successes           */
     double *gamma;       /* n_fam                            */
     double *gr;          /* bdim                             */
-    double *hessian;    /* p x p                            */
-    int *y;              /* n-vector: binary response (0-1). */
+    double *hessian;     /* p x p                            */
+    double *yw;          /* n-vector: response.              */
+    double *weights;     /* n-vector.                        */
 }
 Extb;
 
@@ -39,8 +40,9 @@ void glmm_boot(int *family,
 	       int *p, 
 	       double *start_beta,
 	       int *cluster,
+	       double *weights,
 	       double *x, /* Now p x (\sum_1_{n_fam} fam_size[i]) */
-	       int *y,
+	       double *y,
 	       double *offset,
 	       int *fam_size,
 	       int *n_fam,

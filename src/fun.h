@@ -8,6 +8,23 @@
 #include "glmmml.h"
 
 
+static double g(double u, void *ex);
+
+static double g_u(double u, void *ex);
+
+static double g_uu(double u, void *ex);
+
+static double g_s(double u, void *ex);
+
+static double g_m(double u, int m, void *ex);
+
+static double g_us(double u, void *ex);
+
+static double g_um(double u, int m, void *ex);
+
+static double g_uus(double u, void *ex);
+
+static double g_uum(double u, int m, void *ex);
 
 void frail_fun(int pp1, 
 		 double *beta,
@@ -37,43 +54,76 @@ void fun2(int pp1,
 void nr_opt(int bdim, double *beta, double *loglik, int *mask, 
 	    Exts *ext, double epsilon, int maxit, int *info, int trace);
 
-typedef double P_fun(double, int);
+typedef double P_fun(double, double, double);
 
-typedef double G_fun(double, int);
+typedef double G_fun(double, double, double);
 
-typedef double Gprim_fun(double, int);
+typedef double H_fun(double, double, double);
 
-typedef double Hprim_fun(double, int);
+typedef double I_fun(double, double, double);
 
-double P_logit(double x, int y); /* logit link */
+typedef double K_fun(double, double, double);
+
+typedef double logpr(double);
+
+typedef double d_logpr(double);
+
+typedef double d2_logpr(double);
+
+typedef double d3_logpr(double);
+
+typedef double d4_logpr(double);
+
+double P_logit(double x, double yw, double weight); /* logit link */
     
-double G_logit(double x, int y);
+double G_logit(double x, double yw, double weight);
 
-double Gprim_logit(double x, int y);
+double H_logit(double x, double yw, double weight);
 
-double Hprim_logit(double x, int y);
+double I_logit(double x, double yw, double weight);
 
-double Hbis_logit(double x, int y);
+double K_logit(double x, double yw, double weight);
 
-double P_cloglog(double x, int y);
+double Hbis_logit(double x, double yw, double weight);
 
-double G_cloglog(double x, int y);
+double P_cloglog(double x, double yw, double weight);
 
-double Gprim_cloglog(double x, int y);
+double G_cloglog(double x, double yw, double weight);
 
-double Hprim_cloglog(double x, int y);
+double H_cloglog(double x, double yw, double weight);
 
-double P_poisson(double x, int y);
+double I_cloglog(double x, double yw, double weight);
 
-double G_poisson(double x, int y);
+double K_cloglog(double x, double yw, double weight);
 
-double Gprim_poisson(double x, int y);
+double P_poisson(double x, double yw, double weight);
 
-double Hprim_poisson(double x, int y);
+double G_poisson(double x, double yw, double weight);
 
-double Hbis_poisson(double x, int y);
+double H_poisson(double x, double yw, double weight);
 
+double I_poisson(double x, double yw, double weight);
 
+double K_poisson(double x, double yw, double weight);
 
+double logprior_normal(double u);
+
+double d_logprior_normal(double u);
+
+double d2_logprior_normal(double u);
+
+double d3_logprior_normal(double u);
+
+double d4_logprior_normal(double u);
+
+double logprior_logistic(double u);
+
+double d_logprior_logistic(double u);
+
+double d2_logprior_logistic(double u);
+
+double d3_logprior_logistic(double u);
+
+double d4_logprior_logistic(double u);
 
 #endif

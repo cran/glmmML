@@ -6,175 +6,266 @@
 #include <Rmath.h>
 #include <R_ext/Linpack.h>
 #include <R_ext/Applic.h>
+#include "GB_zeroin.h"
 
 extern P_fun *P;
 extern G_fun *G;
-extern Gprim_fun *Gprim;
+extern H_fun *H;
+extern I_fun *I;
+extern K_fun *K;
+extern logpr *logprior;
+extern d_logpr *d_logprior;
+extern d2_logpr *d2_logprior;
+extern d3_logpr *d3_logprior;
+extern d4_logpr *d4_logprior;
 
 /***********************************************************/
 /*         Bernoulli distribution, logit link:             */
 
-double P_logit(double x, int y){ /* logit link */
-    
-    double location = 0.0;
-    double scale = 1.0;
-    int give_log = 0;
-    double res;
+double P_logit(double x, double yw, double weight){ /* logit link */
+    double res, p;
 
-    res = plogis(x, location, scale, y, give_log);
-    return ( res );
+    res = x * yw - weight * log1p(exp(x));
+/*
+    if ((yw > 0.001) & (weight - yw) > 0.001){ 
+	p = yw / weight;
+	res = res - (yw * log(p) + (weight - yw) * log(1.0 - p));
+    }
+*/
+    return ( exp(res)) ;
 }
 
-double G_logit(double x, int y){
+double G_logit(double x, double yw, double weight){
     
     /* Calculates G = P'/P */
+
     double location = 0.0;
     double scale = 1.0;
     int give_log = 0;
-    double res;
 
-    if (y) {
-	res = plogis(x, location, scale, 0, give_log);
-    }else{
-	res = -plogis(x, location, scale, 1, give_log);
-    }
-    return ( res );
+/* yw - weight * (exp(x)/(1 + exp(x))) */
+
+    return ( yw - weight * plogis(x, location, scale, 1, give_log) );
 }
 
-double Gprim_logit(double x, int y){ /* Note: Independent of y */
+double H_logit(double x, double yw, double weight){ 
+/* Note: Independent of yw */
  
     double location = 0.0;
     double scale = 1.0;
     int give_log = 0;
 
-    return ( -dlogis(x, location, scale, give_log) );
+    return ( -weight * dlogis(x, location, scale, give_log) );
 }
 
-double Hprim_logit(double x, int y){
+double I_logit(double x, double yw, double weight){ 
 
     double location = 0.0;
     double scale = 1.0;
     int give_log = 0;
-    int lower_tail = 0;
 
-    /* exp(x) * (exp(x) - 1.0) / (1 + exp(x))^3 */
+/* Note that expm1(x) = exp(x) - 1 = -(1 - exp(x)) !! */
+/* -n * exp(x) / (1 + exp(x))^2 * (1 - exp(x)) / (1 + exp(x)) */
+    return ( weight * dlogis(x, location, scale, give_log) * 
+	     expm1(x) / (1.0 + exp(x)) );
+}
 
-    return(dlogis(x, location, scale, give_log) * 
-	   expm1(x) * plogis(x, location, scale, lower_tail, give_log));
+double K_logit(double x, double yw, double weight){ 
     
+    double location = 0.0;
+    double scale = 1.0;
+    int give_log = 1;
+    double s;
+    
+    s = exp(x);
+/*
+    n * exp(x) * (4 * exp(x) - exp(2 * x) - 1) / (1 + exp(x))^4
+*/ 
+    return ( weight * s * (4.0 * s - R_pow_di(s, 2) - 1.0) / 
+	     R_pow_di(1 + s, 4) );
+	     
 }
-
-double Hbis_logit(double x, int y){
-
-    return((4.0 * exp(2.0 * x) - exp(3.0 * x) - exp(x)) /
-	   exp(4.0 * log(1 + exp(x))));
-
-}
-
 
 /******************************************************************/
 /*         Bernoulli distribution, cloglog link:                  */
 
-double P_cloglog(double x, int y){
-    double q;
+    double P_cloglog(double x, double yw, double weight){
 
-    q = exp(-exp(x));
+    double s, q;
 
-    if (y) {
-	return ( 1.0 - q );
-    }else{
-	return ( q );
-    }
+    s = exp(x);
+    q = exp(-s);
+    
+    return( exp( yw * log(1.0 - q) - (weight - yw) * s ) );
 }
 
-double G_cloglog(double x, int y){
+double G_cloglog(double x, double yw, double weight){
 
-    double exp_x;
+    double q, s;
 
-    if (y){
-	if (x < -6.0){
-	    return (1.0);
-	}else if (x > 6.0){
-	    return (0.0);
-	}else{
-	    exp_x = exp(x);
-	    return ( exp_x / expm1(exp_x) );
-	}
-    }else{
-	return(-exp(x));
-    }
+    s = exp(x);
+    q = exp(-s);
+
+    return ( s * (yw / (1.0 - q) - weight) );
 }
 
-double Gprim_cloglog(double x, int y){
-    double exp_x;
-    double rat;
+double H_cloglog(double x, double yw, double weight){
+ 
+    double q, s;
 
-    if (y){
-	if (x < -6.0){
-	    return (0.0);
-	}else if (x > 6.0){
-	    return (0.0);
-	}else{
-	    exp_x = exp(x);
-/*
-	    return ( exp_x * (expm1(exp_x) - exp_x * exp(exp_x)) / 
-		    expm1(exp_x) / expm1(exp_x) );
-*/
-	    rat = -exp_x * exp(-exp_x) / expm1(-exp_x);
-	    return (-rat * (expm1(x) + rat) );
-	}
-    }else{
-	return(-exp(x));
-    }
+    s = exp(x);
+    q = exp(-s);
+
+    return ( G_cloglog(x, yw, weight) - 
+	     yw * R_pow_di(s, 2) * q / R_pow_di(1.0 - q, 2) ); 
 }
 
-double Hprim_cloglog(double x, int y){
-    double px, p2x, p3x, expx, exp2x;
-    double res;
+double I_cloglog(double x, double yw, double weight){
+    
+    double q, s;
 
-    expx = exp(x);
-    res = -expx;
+    s = exp(x);
+    q = exp(-s);
 
-    if (y){
-	px = 1.0 - exp(-exp(x));
-	p2x = px * px;
-	p3x = p2x * px;
-	exp2x = expx * expx;
-	res += expx * (p2x * (exp2x + 3.0 * expx + 1.0) -
-		       3.0 * px * expx * (1.0 + expx) -
-		       2.0 * exp2x) / p3x;
-    }
-    return(res);
+    return ( H_cloglog(x, yw, weight) -
+	     yw * R_pow_di(s, 2) * q * 
+	     (2.0 - s * (1 + q)/ R_pow_di((1.0 - q), 3)) ); 
+	     /* s * q * ( 2.0 * (1.0 - q) - s * (1 + q)) /
+		R_pow_di(1 - q, 3) );*/
+	     }
+    
+double K_cloglog(double x, double yw, double weight){
+
+    double q, s, s2, z;
+    double mq3;
+
+
+    s = exp(x);
+    s2 = R_pow_di(s, 2);
+    q = exp(-s);
+    mq3 = R_pow_di(1-q, 3);
+
+    z = (yw * (2 * s) * q - yw * s2 * q) * 
+	(2 - s * (1 + q) / mq3) -
+      yw * s2 * q * (((1 + q) - s * q)/ mq3 -
+		     s * (1 + q) * 3 * q / R_pow_di((1 - q), 4));
+
+    return ( I_cloglog(x, yw, weight) - s * z );
 }
-
 	
 /*****************************************************************/
 /*       Poisson distribution, log link:                         */
 
-double P_poisson(double x, int y){
+double P_poisson(double x, double yw, double weight){
+
+    return ( exp(weight * (x * yw - exp(x))) );
+}
+
+double G_poisson(double x, double yw, double weight){
+
+    return ( weight * (yw - exp(x)) );
+}
+
+double H_poisson(double x, double yw, double weight){ 
+/* Note: Independent of yw */
+
+    return ( -weight * exp(x) );
+}
+
+double I_poisson(double x, double yw, double weight){ 
+/* Note: Independent of yw */
+
+    return ( -weight * exp(x) );
+}
+
+double K_poisson(double x, double yw, double weight){ 
+/* Note: Independent of yw */
+
+    return ( -weight * exp(x) );
+}
+
+/* Prior distribution aand it's derivatives:            */
+/* no scale; transformed away! (May be reconsidered...  */
+/* Normal and logistic for the moment                                */
+
+double logprior_normal(double u){
+
+/* \log phi(u) = -0.5 log(2 * pi) - u^2 / 2*/
+
+    return ( -M_LN_SQRT_2PI - R_pow_di(u, 2) / 2.0 );
+}
+
+double d_logprior_normal(double u){
+
+    return ( -u );
+
+}
+
+double d2_logprior_normal(double u){
+
+    return ( -1.0 );
+
+}
+
+double d3_logprior_normal(double u){
+
+    return ( 0.0 );
+}
+
+double d4_logprior_normal(double u){
+
+    return ( 0.0 );
+}
+
+double logprior_logistic(double u){
+
+    return ( u - 2 * log(1+exp(u)) );
+/*
+ return( u - 2.0 * plogis(u, location, scale, lower_tail, give_log) );
+*/
+}
+
+double d_logprior_logistic(double u){
+
+    int give_log = 0; /* NOT log scale */
+    double location = 0.0;
+    double scale = 1.0;
+    int lower_tail = 1; /* Yes, lower tail */
+
+    /* 1 - 2 * exp(u) / (1 + exp(u)) */
+    return ( 1.0 - 2.0 * plogis(u, location, scale, lower_tail, give_log) );
+
+}
+
+double d2_logprior_logistic(double u){
 
     int give_log = 0;
-    return ( dpois(y, exp(x), give_log) );
+    double location = 0.0;
+    double scale = 1.0;
+
+    return ( -2.0 * dlogis(u, location, scale, give_log) );
+
 }
 
-double G_poisson(double x, int y){
+double d3_logprior_logistic(double u){
 
-    return (y - exp(x));
+    double s;
+
+    s = exp(u);
+    return ( -2.0 * s * (1.0 - s) / R_pow_di(1 + s, 2) );
+
 }
 
-double Gprim_poisson(double x, int y){ /* Note: Independent of y */
+double d4_logprior_logistic(double u){
 
-    return (-exp(x));
-}
+    double s, s2, s3;
 
-double Hprim_poisson(double x, int y){
+    s = exp(u);
+    s2 = R_pow_di(s, 2);
+    s3 = R_pow_di(s, 3);
 
-    return(-exp(x));
-}
+    return ( -2.0 * (s3 - 4.0 * s2 + s) / R_pow_di(1 + s, 4) );
 
-double Hbis_poisson(double x, int y){
-
-    return(-exp(x));
 }
 
 /*****************************************************************/
@@ -182,7 +273,7 @@ double Hbis_poisson(double x, int y){
 /* Needs modification!!! ('int y' no good!)                      */
 
 /*********************
-double P_normal(double x, int y){
+double P_normal(double x, double y, double weight){
 
 }
 
@@ -190,14 +281,560 @@ double G_normal(double x, int y){
 
 }
 
-double Gprim_normal(double x, int y){
+double H_normal(double x, int y){
 
 }
 ********************/
 
+/****************************************************************/
+/* The functions for Laplace comes here. Can also be useful for */
+/* Gauss-Hermite (fully adapted).                               */
+
+static double g(double u, void *ex){
+
+    int j;
+    double res, sigu;
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+    res = 0.0;
+    for (j = 0; j < fam->n; j++){
+	res += log(P(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j])); 
+    }
+
+    return ( logprior(u) + res );
+}
+
+static double g_u(double u, void *ex){
+
+    int j;
+    double res, sigu;
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+    
+    res = 0.0;
+    for (j = 0; j < fam->n; j++){
+	res += G(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    }
+    
+    return ( d_logprior(u) + res * fam->sigma );
+}
+
+static double g_uu(double u, void *ex){
+
+    int j;
+    double res, sigu;
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+
+    res = 0.0;
+    for (j = 0; j < fam->n; j++){
+	res += H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    }
+    
+
+    return ( d2_logprior(u) +  res * R_pow_di(fam->sigma, 2) );
+}
+
+static double g_s(double u, void *ex){
+
+/* Component 'sigma' */
+
+    int j;
+    double res, sigu;
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+
+    res = 0.0;
+    for (j = 0; j < fam->n; j++){
+	res += G(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    }
+    
+
+    return ( res * u );
+}
+
+static double g_m(double u, int m, void *ex){
+
+/* Component 'm' in beta */
+
+    int j;
+    double res, sigu;
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+
+    res = 0.0;
+    for (j = 0; j < fam->n; j++){
+	res += fam->x[m][j] * 
+	    G(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    }
+    
+    return ( res );
+}
+
+static double g_ss(double u, void *ex){
+
+/* Component 'sigma' */
+
+    int j;
+    double res, sigu;
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+
+    res = 0.0;
+    for (j = 0; j < fam->n; j++){
+	res += H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    }
+    
+
+    return ( res * R_pow_di(u, 2) );
+}
+
+static double g_sm(double u, int m, void *ex){
+
+/* Component 'm' in beta */
+
+    int j;
+    double res, sigu;
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+
+    res = 0.0;
+    for (j = 0; j < fam->n; j++){
+	res += fam->x[m][j] * 
+	    H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    }
+    
+    return ( res * u );
+}
+
+static double g_mk(double u, int m, int k, void *ex){
+
+/* Component 'm' in beta */
+
+    int j;
+    double res, sigu;
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+
+    res = 0.0;
+    for (j = 0; j < fam->n; j++){
+	res += fam->x[m][j] * fam->x[k][j] * 
+	    H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    }
+    
+    return ( res );
+}
+
+
+static double g_us(double u, void *ex){
+
+/* Component 'm' in beta */
+
+    int j;
+    double sum1, sum2, sigu;
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+
+    sum1 = 0.0;
+    sum2 = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum1 +=  H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+	sum2 +=  G(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    }
+    
+    return ( sum1 * sigu + sum2);
+}
+
+static double g_um(double u, int m, void *ex){
+
+/* Component 'm' in beta */
+
+    int j;
+    double res, sigu;
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+
+    res = 0.0;
+    for (j = 0; j < fam->n; j++){
+	res += fam->x[m][j] * 
+	    H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    }
+    
+    return ( fam->sigma * res );
+}
+
+static double g_uus(double u, void *ex){
+
+/* Component 'm' in beta */
+
+    int j;
+    double sum1, sum2, sigu;
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+
+    sum1 = 0.0;
+    sum2 = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum1 +=  H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+	sum2 += I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    }
+    
+    return ( 2 * fam->sigma * sum1 + sigu * fam->sigma * sum2 );
+}
+
+static double g_uum(double u, int m, void *ex){
+
+/* Component 'm' in beta */
+
+    int j;
+    double res, sigu;
+
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u; 
+
+    res = 0.0;
+    for (j = 0; j < fam->n; j++){
+	res += fam->x[m][j] * 
+	    I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    }
+    
+    return ( R_pow_di(fam->sigma, 2) * res );
+}
+
+static double g_uuu(double u, void *ex){
+    int j;
+    double sum, sigu;
+
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u;
+
+    sum = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum += I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+    }
+
+    return ( d3_logprior(u) + sum * R_pow_di(fam->sigma, 3) );
+} 
+
+static double g_uss(double u, void *ex){
+
+    int j;
+    double sum1, sum2, sigu;
+
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u;
+
+    sum1 = 0.0; sum2 = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum1 += I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	sum2 += H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+    }
+    
+    return (sigu * fam->sigma * sum1 + 2.0 * u * sum2);
+}
+
+static double g_usm(double u, int m, void *ex){
+
+    int j;
+    double sum1, sum2, sigu;
+
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u;
+
+    sum1 = 0.0; sum2 = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum1 += fam->x[m][j] *
+	    I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	sum2 += fam->x[m][j] *
+	    H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+    }
+    
+    return (sigu * sum1 + sum2);
+}
+
+static double g_umk(double u, int m, int k, void *ex){
+
+    int j;
+    double sum, sigu;
+
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u;
+
+    sum = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum += fam->x[m][j] * fam->x[k][j] *
+	    I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+    }
+    
+    return (fam->sigma * sum);
+}
+
+static double g_uuss(double u, void *ex){
+
+    int j;
+    double sum1, sum2, sum3, sigu;
+
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u;
+
+    sum1 = 0.0; sum2 = 0.0; sum3 = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum1 += K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	sum2 += I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	sum3 += H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+    }
+
+    return(R_pow_di(sigu, 2) * sum1 +
+	   4.0 * sigu * sum2 +
+	   2.0 * sum3);
+}
+
+static double g_uusm(double u, int m, void *ex){
+
+    int j;
+    double sum1, sum2, sigu;
+
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u;
+
+    sum1 = 0.0; sum2 = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum1 += fam->x[m][j] * 
+	    K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	sum2 += fam->x[m][j] *
+	    I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+    }
+
+    return(sigu * fam->sigma * sum1 + 2.0 * fam->sigma * sum2);
+}
+
+static double g_uumk(double u, int m, int k, void *ex){
+
+    int j;
+    double sum, sigu;
+
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u;
+
+    sum = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum += fam->x[m][j] * fam->x[k][j] *
+	    K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+    }
+
+    return(R_pow_di(fam->sigma, 2) * sum);
+}
+
+static double g_uuuu(double u, void *ex){
+
+    int j;
+    double sum, sigu;
+
+    Family *fam;
+
+    fam = ex;
+
+    sigu = fam->sigma * u;
+
+    sum = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum += K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+    }
+
+    return(d4_logprior(u) + R_pow_di(fam->sigma, 4) * sum);
+}
+
+static double g_uuus(double u, void *ex){
+
+    int j;
+    double sum1, sum2, s2, sigu;
+
+    Family *fam;
+
+    fam = ex;
+
+    s2 = R_pow_di(fam->sigma, 2);
+    sigu = fam->sigma * u;
+
+    sum1 = 0.0; sum2 = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum1 += K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	sum2 += I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+    }
+
+    return(sigu * s2 * sum1 + 3.0 * s2 * sum2);
+}
+
+static double g_uuum(double u, int m, void *ex){
+
+    int j;
+    double sum, s3, sigu;
+
+    Family *fam;
+
+    fam = ex;
+
+    s3 = R_pow_di(fam->sigma, 3);
+    sigu = fam->sigma * u;
+
+    sum = 0.0;
+    for (j = 0; j < fam->n; j++){
+	sum += fam->x[m][j] *
+	    K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+    }
+
+    return(s3 * sum);
+}
+/* u components (second order, first order as vectors! */
+/* We take these as vectors (matrices) too !! */
+/*
+static double u_ss(double u, double s2, double u_s, void *ex){
+
+    return( s2 * (R_pow_di(u_s, 2) * g_uuu(u, ex) + 
+		  2.0 * u_s * g_uus(u, ex) +
+		  g_uss(u, ex)) );
+}
+
+static double u_sm(double u, double s2, double u_s, double *u_m, 
+		   int m, void *ex){
+
+    return( s2 * (u_s * u_m[m] * g_uuu(u, ex) + 
+		  u_s * g_uum(u, m, ex) +
+		  u_m[m] * g_uus(u, ex) +
+		  g_usm(u, m, ex)) );
+}
+
+static double u_mk(double u, double s2, double *u_m, 
+		   int m, int k, void *ex){
+
+    return( s2 * (u_m[k] * u_m[m] * g_uuu(u, ex) + 
+		  u_m[k] * g_uum(u, m, ex) +
+		  u_m[m] * g_uum(u, k, ex) +
+		  g_umk(u, m, k, ex)) );
+}
+*/
+
+/* Log Likelihood components: */
+
+static double l_u(double u, double s2, void *ex){
+
+    return ( 0.5 * s2 * g_uuu(u, ex) + g_u(u, ex) );
+} 
+
+static double l_s(double u, double s2, void *ex){
+
+    return ( 0.5 * s2 * g_uus(u, ex) + g_s(u, ex) );
+} 
+
+static double l_m(double u, double s2, int m, void *ex){
+
+    return ( 0.5 * s2 * g_uum(u, m, ex) + g_m(u, m, ex) );
+} 
+
+static double l_uu(double u, double s2, void *ex){
+    
+    return ( 0.5 * s2 * 
+	     (g_uuuu(u, ex) + s2 * R_pow_di(g_uuu(u, ex), 2)) + 
+	     g_uu(u, ex) ); 
+}
+
+static double l_us(double u, double s2, void *ex){
+    
+    return ( 0.5 * s2 * 
+	     (g_uuus(u, ex) + s2 * g_uuu(u, ex) * g_uus(u, ex)) + 
+	     g_us(u, ex) );
+}
+
+static double l_um(double u, double s2, int m, void *ex){
+    
+    return ( 0.5 * s2 * 
+	     (g_uuum(u, m, ex) + s2 * g_uuu(u, ex) * g_uum(u, m, ex)) + 
+	     g_um(u, m, ex) );
+}
+
+static double l_ss(double u, double s2, void *ex){
+    
+    return ( 0.5 * s2 * 
+	     (g_uuss(u, ex) + s2 * R_pow_di(g_uus(u, ex), 2)) + 
+	     g_ss(u, ex) );  
+}
+
+static double l_sm(double u, double s2, int m, void *ex){
+    
+    return ( 0.5 * s2 * 
+	     (g_uusm(u, m, ex) + s2 * g_uus(u, ex) * g_uum(u, m, ex)) + 
+	     g_sm(u, m, ex) );  
+}
+
+static double l_mk(double u, double s2, int m, int k, void *ex){
+    
+    return ( 0.5 * s2 * 
+	     (g_uumk(u, m, k, ex) + s2 * g_uum(u, m, ex) * g_uum(u, k, ex)) + 
+	     g_mk(u, m, k, ex) );  
+}
+
+/*************** End Laplace fun's ******************************/
+
 static double fun_fam(int one, double *u, void *ex){
 /* Calculates minus the log of the 'family' likelihood */
-    double res;
+    double res, usig;
     int j;
     double zero = 0.0;
     double ett = 1.0;
@@ -209,9 +846,11 @@ static double fun_fam(int one, double *u, void *ex){
 
     res = dnorm(*u, zero, ett, give_log);
 
+    usig = *u * fam->sigma;
     for (j = 0; j < fam->n; j++){
 /* This should be fixed via a parameter 'give_log' to P! */
- 	    res += log(P(fam->x_beta[j] + *u * fam->sigma, fam->y[j]));
+ 	    res += log(P(fam->x_beta[j] + usig, 
+			 fam->yw[j], fam->weights[j]));
     }
 
     return(-res);
@@ -221,14 +860,16 @@ static void du_fun_fam(int one, double *u, double *gr, void *ex){
 /* Calculates minus the derivative of the log of fun_fam at u */
     
     int j;
-    double tmp;
+    double tmp, usig;
     Family *fam;
 
     fam = ex;
 
     tmp = 0.0;
+    usig = *u * fam->sigma;
     for (j = 0; j < fam->n; j++) 
-	tmp += G(fam->x_beta[j] + *u * fam->sigma, fam->y[j]);
+	tmp += G(fam->x_beta[j] + usig, 
+		 fam->yw[j], fam->weights[j]);
 
     *gr = *u - fam->sigma * tmp;
 }
@@ -237,16 +878,21 @@ static void du2_fun_fam(int one, double *u, double *grr, void *ex){
 /* Calculates minus the second derivative of the log of fun_fam at u */
     
     int j;
-    double tmp;
+    double tmp, usig;
     Family *fam;
 
     fam = ex;
 
     tmp = 0.0;
-    for (j = 0; j < fam->n; j++) 
-	tmp += Gprim(fam->x_beta[j] + *u * fam->sigma, fam->y[j]);
+    usig = *u * fam->sigma;
+    for (j = 0; j < fam->n; j++){ 
+	tmp += H(fam->x_beta[j] + usig, 
+		     fam->yw[j], 
+		     fam->weights[j]);
+	/* Rprintf("[du2_fun_fam] tmp = %f\n", tmp); */
+    }
 
-    *grr = 1.0 - fam->sigma *fam->sigma * tmp;
+    *grr = 1.0 - R_pow_di(fam->sigma, 2) * tmp;
 }
 
 static double fun1_fam(int one, double *u, void *ex){
@@ -269,7 +915,8 @@ static double fun1_fam(int one, double *u, void *ex){
 
     for (j = 0; j < fam->n; j++){
 /* This should be fixed via a parameter 'give_log' to P! */
-	res += log(P(fam->x_beta[j] + *u * fam->sigma, fam->y[j]));
+	res += log(P(fam->x_beta[j] + *u * fam->sigma, fam->yw[j],
+		   fam->weights[j]));
 /*	    Rprintf("[fun_fam:] x_beta[%d] = %f\n", j, fam->x_beta[j]); */
     }
 
@@ -278,6 +925,44 @@ static double fun1_fam(int one, double *u, void *ex){
     return(tmp);
 /* This will be continued when we know whether it is worthwhile!!! */
 /* Not used at the moment */
+}
+
+    
+static void int_fun_mean(double *x, 
+			 int n, 
+			 void *ex){
+    /* Calculates one integrand (for one "family") in the expression     */
+    /* of the log likelihood function.                                   */
+    /* it is vectorizing, x is of length n. On input, x is the vector    */
+    /* of points where int_fun should be evaluated, on output x contains */
+    /* the n results.                                                    */
+
+    /* NOTE: x[i] and fam->x[i] are different things here!! */
+
+    double *res;
+    int i, j;
+    double zero = 0.0;
+    double one = 1.0;
+    int give_log = 0;
+
+    Family *fam;
+
+    fam = ex;
+
+    res = Calloc(n, double);
+    for (i = 0; i < n; i++) 
+	res[i] = x[i] * dnorm(x[i], zero, one, give_log);
+
+    for (i = 0; i < n; i++){
+	for (j = 0; j < fam->n; j++){
+ 	    res[i] *= P(fam->x_beta[j] + x[i] * fam->sigma,
+			fam->yw[j], fam->weights[j]);
+	}
+	/* x[i] = res[i]; Improve by 'memcpy' later */
+    }
+    memcpy(x, res, n * sizeof(double));
+
+    Free(res);
 }
 
     
@@ -307,7 +992,8 @@ static void int_fun(double *x,
 
     for (i = 0; i < n; i++){
 	for (j = 0; j < fam->n; j++){
- 	    res[i] *= P(fam->x_beta[j] + x[i] * fam->sigma,fam->y[j]);
+ 	    res[i] *= P(fam->x_beta[j] + x[i] * fam->sigma,
+			fam->yw[j], fam->weights[j]);
 	}
 	/* x[i] = res[i]; Improve by 'memcpy' later */
     }
@@ -349,19 +1035,21 @@ static void int_fun1(double *x,
 	tsum = 0.0;
 	for (j = 0; j < fam->n; j++){
 	    tsum += fam->x[m][j] * 
-		G(fam->x_beta[j] + fam->sigma * x[i], fam->y[j]);
+		G(fam->x_beta[j] + fam->sigma * x[i], 
+		  fam->yw[j], fam->weights[j]);
 	}
 	res[i] *= tsum;
     }
 	
     for (i = 0; i < n; i++){
 	for (j = 0; j < fam->n; j++){ 
-	    res[i] *= P(fam->x_beta[j] + x[i] * fam->sigma,fam->y[j]);
+	    res[i] *= P(fam->x_beta[j] + x[i] * fam->sigma,
+			fam->yw[j], fam->weights[j]);
 	}
 	/* x[i] = res[i]; Improve by 'memcpy' later */
     }
     memcpy(x, res, n * sizeof(double));
-
+    /* for (i = 0; i < n; i++) Rprintf("x[%d] = %f\n", i, x[i]); */
     Free(res);
 }
 
@@ -394,15 +1082,17 @@ static void int_fun1s(double *x,
     for (i = 0; i < n; i++){
 	tsum = 0.0;
 	for (j = 0; j < fam->n; j++){
-	    tsum += G(fam->x_beta[j] + fam->sigma * x[i], fam->y[j]);
+	    tsum += G(fam->x_beta[j] + fam->sigma * x[i], 
+		      fam->yw[j], fam->weights[j]);
 	}
-	res[i] *= tsum * fam->sigma * x[i];
+	res[i] *= tsum * x[i]; /* NOTE (no sigma)!!!!!!! */
 	
     }
 	
     for (i = 0; i < n; i++){
 	for (j = 0; j < fam->n; j++){ 
-	    res[i] *= P(fam->x_beta[j] + x[i] * fam->sigma,fam->y[j]);
+	    res[i] *= P(fam->x_beta[j] + x[i] * fam->sigma,
+			fam->yw[j], fam->weights[j]);
 	}
 	/* x[i] = res[i]; Improve by 'memcpy' later */
     }
@@ -451,7 +1141,8 @@ static void int_fun2(double *x,
 	tmp = 0.0;
 	for (j = 0; j < fam->n; j++){
 	    tmp += fam->x[m][j] * 
-		G(fam->x_beta[j] + fam->sigma * x[i], fam->y[j]);
+		G(fam->x_beta[j] + fam->sigma * x[i], 
+		  fam->yw[j], fam->weights[j]);
 	}
 	g1sum[i] = tmp;
     }
@@ -461,7 +1152,8 @@ static void int_fun2(double *x,
 	tmp = 0.0;
 	for (j = 0; j < fam->n; j++){
 	    tmp += fam->x[k][j] * 
-		G(fam->x_beta[j] + fam->sigma * x[i], fam->y[j]);
+		G(fam->x_beta[j] + fam->sigma * x[i], 
+		  fam->yw[j], fam->weights[j]);
 	}
 	g2sum[i] = tmp;
     }
@@ -473,7 +1165,8 @@ static void int_fun2(double *x,
 	    tmp += 
 		fam->x[m][j] * 
 		fam->x[k][j] * 
-		Gprim(fam->x_beta[j] + fam->sigma * x[i], fam->y[j]);
+		H(fam->x_beta[j] + fam->sigma * x[i], 
+		      fam->yw[j], fam->weights[j]);
 	}
 	hsum[i] = tmp;
     }
@@ -481,7 +1174,8 @@ static void int_fun2(double *x,
     for (i = 0; i < n; i++){
 	tmp = 1.0;
 	for (j = 0; j < fam->n; j++){
-	    tmp *= P(fam->x_beta[j] + x[i] * fam->sigma,fam->y[j]);
+	    tmp *= P(fam->x_beta[j] + x[i] * fam->sigma,
+		     fam->yw[j], fam->weights[j]);
 	}
 	res[i] *= tmp * (g1sum[i] * g2sum[i] + hsum[i]);
 	/* x[i] = res[i];  Improve by 'memcpy' later */
@@ -535,7 +1229,8 @@ static void int_fun2s(double *x,
 	tmp = 0.0;
 	for (j = 0; j < fam->n; j++){
 	    tmp += fam->x[m][j] * 
-		G(fam->x_beta[j] + fam->sigma * x[i], fam->y[j]);
+		G(fam->x_beta[j] + fam->sigma * x[i], 
+		  fam->yw[j], fam->weights[j]);
 	}
 	g1sum[i] = tmp;
 }
@@ -544,7 +1239,8 @@ static void int_fun2s(double *x,
     for (i = 0; i < n; i++){
 	tmp = 0.0;
 	for (j = 0; j < fam->n; j++){
-	    tmp += G(fam->x_beta[j] + fam->sigma * x[i], fam->y[j]);
+	    tmp += G(fam->x_beta[j] + fam->sigma * x[i], 
+		     fam->yw[j], fam->weights[j]);
 	}
 	g2sum[i] = tmp;
     }
@@ -555,7 +1251,8 @@ static void int_fun2s(double *x,
 	for (j = 0; j < fam->n; j++){
 	    tmp += 
 		fam->x[m][j] * 
-		Gprim(fam->x_beta[j] + fam->sigma * x[i], fam->y[j]);
+		H(fam->x_beta[j] + fam->sigma * x[i], 
+		      fam->yw[j], fam->weights[j]);
 	}
 	hsum[i] = tmp;
     }
@@ -563,9 +1260,10 @@ static void int_fun2s(double *x,
     for (i = 0; i < n; i++){
 	tmp = 1.0;
 	for (j = 0; j < fam->n; j++){
-	    tmp *= P(fam->x_beta[j] + x[i] * fam->sigma,fam->y[j]);
+	    tmp *= P(fam->x_beta[j] + x[i] * fam->sigma,
+		     fam->yw[j], fam->weights[j]);
 	}
-	res[i] *= tmp * x[i] * fam->sigma *
+	res[i] *= tmp * x[i] * /* fam->sigma *  NOTE!!!!! */
 	    (g1sum[i] * g2sum[i] + hsum[i]);
 	/* x[i] = res[i];  Improve by 'memcpy' later */
     }
@@ -612,7 +1310,8 @@ static void int_funss(double *x,
     for (i = 0; i < n; i++){
 	tmp = 0.0;
 	for (j = 0; j < fam->n; j++){
-	    tmp += G(fam->x_beta[j] + fam->sigma * x[i], fam->y[j]);
+	    tmp += G(fam->x_beta[j] + fam->sigma * x[i], 
+		     fam->yw[j], fam->weights[j]);
 	}
 	gsum[i] = tmp;
     }
@@ -622,7 +1321,8 @@ static void int_funss(double *x,
 	tmp = 0.0;
 	for (j = 0; j < fam->n; j++){
 	    tmp += 
-		Gprim(fam->x_beta[j] + fam->sigma * x[i], fam->y[j]);
+		H(fam->x_beta[j] + fam->sigma * x[i], 
+		      fam->yw[j], fam->weights[j]);
 	}
 	hsum[i] = tmp;
     }
@@ -630,11 +1330,12 @@ static void int_funss(double *x,
     for (i = 0; i < n; i++){
 	tmp = 1.0;
 	for (j = 0; j < fam->n; j++){
-	    tmp *= P(fam->x_beta[j] + x[i] * fam->sigma,fam->y[j]);
+	    tmp *= P(fam->x_beta[j] + x[i] * fam->sigma,
+		     fam->yw[j], fam->weights[j]);
 	}
-	res[i] *= fam->sigma * x[i] *  tmp *
-	    (gsum[i] * (1.0 + fam->sigma * x[i] * gsum[i]) +
-	     fam->sigma * x[i] * hsum[i]);
+	res[i] *= x[i] *  tmp *          /* NOTE !!!!!!!!!!!! */
+	    (gsum[i] * (1.0 + x[i] * gsum[i]) +
+	     x[i] * hsum[i]);
     	/* x[i] = res[i];  Improve by 'memcpy' later */
     }
 
@@ -654,7 +1355,7 @@ static void update(int level,
 		   double *post_mode,
 		   Family *fam,
 		   int n_points,
-		   double *weights,
+		   double *wc,
 		   double *zeros){
     
     double h;
@@ -667,8 +1368,8 @@ static void update(int level,
     /* For integrate */
     int inf = 2;
     double bound = 0.0;
-    double epsabs = 0.000001; /* Check this!!!!!!!!!!!! */
-    double epsrel = 0.000001; /* !!!!!!!!!!!!!!!!!!!!!! */
+    double epsabs = 0.0001; /* Check this!!!!!!!!!!!! */
+    double epsrel = 0.0001; /* !!!!!!!!!!!!!!!!!!!!!! */
     double abserr;
     int neval;
     int ier;
@@ -681,15 +1382,15 @@ static void update(int level,
     /* End For integrate */
     
     void *ex;
-
+    double ax, bx;
     int n;
     double **x;
     double *x_beta;
-    int *y;
+    double *yw;
 
     int one = 1;
 
-    double u, fu, sigma_hat;
+    double u_hat, sigma_hat, sigma2_hat, fu;
     double abstol = 0.000001;
     double reltol = 0.000001;
     int maxit = 100;
@@ -700,42 +1401,52 @@ static void update(int level,
     int mask = 1;
 
     /* temporary gig: */
-    double *x_val;
+    double *u;
     double *wght;
 
     char *vmax;
 
+    double u_s, u_ss;
+    double *u_m, *u_sm;
+    double *u_mkvec;
+    double **u_mk;
+
+    double sh_s, sh_ss; /* sh: short for 'sigma_hat' ! */
+    double *sh_m, *sh_sm;
+    double *sh_mkvec;
+    double **sh_mk;
+
+    double gu, guu, guuu, guuuu; /* Counterparts to g_u, g_uu, etc */
+
     if (level < 0) return;
-/*
-    x_val = Calloc(n_points, double);
+
+    u = Calloc(n_points, double);
     wght = Calloc(n_points, double);
-*/
-    x_val = zeros;
-    wght = weights;
+
 /*
-    for (i = 0; i < n_points; i++){
-	x_val[i] = zeros[i] / 1.41421356237;
-	wght[i] = weights[i] * 1.77245385091;
-    }
+    u = zeros;
+    wght = wc;
 */
+    for (i = 0; i < n_points; i++){
+/* Should be moved to 'ghq.f' after testing! DONE now!!*/
+	wght[i] = wc[i]; /* * exp(R_pow_di(zeros[i], 2)); */
+    }
+
     ex = fam;
 
     n = fam->n;
     x = fam->x;
     x_beta = fam->x_beta;
-    y = fam->y;
+    yw = fam->yw;
 
     lenw = 4 * limit;
     iwork = Calloc(limit, int);
     work = Calloc(lenw, double);
 
-    sigma = exp(beta[p]);
+    sigma = beta[p];
 
-    if (level > 0){
-	hb = Calloc((p + 1), double);
-	hbb = Calloc((p + 1) * (p + 1), double);
-    }
-
+    /* First, find the u value that maximizes the integrand */
+    /* (or, equivalently, the log of it:                    */ 
 
     tmp = 0.0;
     for (i = 0; i < fam->n; i++){
@@ -743,20 +1454,60 @@ static void update(int level,
     }
 
     tmp /= (double)fam->n;
-    u = -tmp / fam->sigma; /* Start value for u */
-    tmp = fun_fam(one, &u, ex);
-/*    Rprintf("[fun:] Start value to vmmin: %f\n", tmp); */
-    vmax = vmaxget();
-    vmmin(one, &u, &fu, fun_fam, du_fun_fam, maxit, trace,
-	  &mask, abstol, reltol, nREPORT, 
-	  ex, &fncount, &grcount, &fail);
-    vmaxset(vmax);
+    if (abs(tmp) < 1.e-16 || abs(fam->sigma) < 1.e-16) u_hat = 0;
+    else u_hat = -tmp / fam->sigma; /* Start value for u_hat */
+/*
+    if (fam->sigma > 1000.0){ 
+	Rprintf("[fun] u_hat = %f\n", u_hat); 
+	Rprintf("[fun] sigma = %f\n", fam->sigma); 
+	Rprintf("[fun:] Start value to vmmin: %f\n", tmp);
+    }
+*/
+    tmp = fun_fam(one, &u_hat, ex);
+    /* if (n_points == 1){ */
+	ax = -1.0;
+	bx = -ax;
+	while (g_u(ax, ex) * g_u(bx, ex) >= 0){
+	    ax = 2.0 * ax;
+	    bx = 2.0 * bx;
+	}
+	u_hat = GB_zeroin(ax, bx, g_u, ex, &reltol, &maxit);
+	/* Rprintf("u_hat = %f\n", u_hat); */
+/* 
+	vmmin(one, &u_hat, &fu, g, g_u, maxit, trace,
+	      &mask, abstol, reltol, nREPORT, 
+	      ex, &fncount, &grcount, &fail);
+*/
+/*
+    }else{
+	vmax = vmaxget();
+	vmmin(one, &u_hat, &fu, fun_fam, du_fun_fam, maxit, trace,
+	      &mask, abstol, reltol, nREPORT, 
+	      ex, &fncount, &grcount, &fail);
+	vmaxset(vmax);
+    }
+*/
+/*    if (fail) Rprintf("[update] fail = %d\n", fail); */ 
+
+/*    if (n_points == 1){ */ 
+/*	du2_fun_fam(one, &u_hat, &tmp, ex); */
+	gu = g_u(u_hat, ex);
+	guu = g_uu(u_hat, ex);
+	if (guu >= 0.0) 
+	    error("[update:] Second derivative non-negative at max!");
+	sigma_hat = sqrt(-1.0 / guu);
+/*    }else{ */
+	/* sigma_hat = 1.0; */ /* NOTE!!! OBSERVE !!!!!! */
+/*    }*/
+    sigma2_hat = R_pow_di(sigma_hat, 2);
     
-    du2_fun_fam(one, &u, &tmp, ex);
+    for (i = 0; i < n_points; i++){
+	u[i] = M_SQRT2 * sigma_hat * zeros[i] + u_hat;
+	/* Rprintf("u[%d] = %f\n", i, u[i]); */
+    }
+    *post_mode = u_hat;
 
-    sigma_hat = sqrt(1.0 / tmp);
-    *post_mode = u;
-
+    /* Rprintf("u_hat = %f, sigma_hat = %f\n", u_hat, sigma_hat);  */
 /**********************************************************************/    
 /* Calculate  h  for the loglik: */
     
@@ -768,210 +1519,334 @@ static void update(int level,
 */
 
 /* GHQ: */
+    
+    if (n_points >= 2){
 
-    h = 0.0;
-    for (i = 0; i < n_points; i++){
-	tmp = sqrt(2.0) * x_val[i] * sigma_hat + u;
-	tmp2 = tmp;
-	int_fun(&tmp2, one, ex);
-	tmp2 *= wght[i] * exp(x_val[i] * x_val[i]);
-	h += tmp2;
+	h = 0.0;
+	for (i = 0; i < n_points; i++){
+	    h +=  wght[i] * exp(g(u[i], ex));
+	}
+	/* M_LN2 = log(2) */
+
+	*loglik += 0.5 * M_LN2 + log(sigma_hat) + log(h);
+
+/*  OLD way:
+	h = 0.0;
+	for (i = 0; i < n_points; i++){
+	    tmp = u[i];
+	    tmp2 = tmp;
+	    int_fun(&tmp2, one, ex);
+	    tmp2 *= wght[i];
+	    h += tmp2;
+	}
+	
+	h = sigma_hat * M_SQRT2 * h;
+	if (h <= 0){
+	    error("Unable do get likelihood function POSITIVE!!!!!!!!!\n");
+	}
+
+	*loglik += log(h);
+	*/
+
+    }else{ /* Laplace */
+	 *loglik += g(u_hat, ex) + M_LN_SQRT_2PI + log(sigma_hat);
     }
 
-    h = sigma_hat * sqrt(2) * h;
-
-    /* Add into the loglik; We allow *loglik = -Inf!! */
-    *loglik += log(h);
-
     if (level == 0) {
+	Free(u);
+	Free(wght);
 	Free(iwork);
 	Free(work);
 	return;
     }
 
-    if (h <= 0){
-	error("Unable do get likelihood function POSITIVE!!!!!!!!!\n");
-    }
-
 
 /***********************************************************************/    
 /* First order derivatives, hb[]. */
+
+/* level >= 1 */
+
+    u_m = Calloc(p, double); /* must be changed for GHQ (n_points > 1)!! */
+
+    for (i = 0; i < p; i++) 
+	u_m[i] = sigma2_hat * g_um(u_hat, i, ex);
+    u_s = sigma2_hat * g_us(u_hat, ex);
+
+    sh_m = Calloc(p, double); /* must be changed for GHQ (n_points > 1)!! */
+
+    guuu = g_uuu(u_hat, ex);
+    for (i = 0; i < p; i++) 
+	sh_m[i] = 0.5 * R_pow_di(sigma_hat, 3) * 
+	    (u_m[i] * guuu + g_uum(u_hat, i, ex)); 
+    sh_s = 0.5 * R_pow_di(sigma_hat, 3) * 
+	(u_s * guuu + g_uus(u_hat, ex));
+
+/*******************************************************************/
+
+    hb = Calloc((p + 1), double);
+
+
     for (m = 0; m <= p; m++){ /* hb[m]; note w = log(sigma) INCLUDED! */
 	if (m < p){
 
-/* We don't use GHQ here...
+	    if (n_points >= 2){
 
-	    hb[m] = 0.0;
-	    fam->m = m;
-	    for(i = 0; i < n_points; i++){
-		tmp = sqrt(2.0) * x_val[i] * sigma_hat + u;
-		tmp2 = tmp;
-		int_fun1(&tmp2, one, ex);
-		hb[m] += tmp2 * wght[i] 
-		    * exp(x_val[i] * x_val[i]);
-	    }
-	    hb[m] = sigma_hat * sqrt(2) * hb[m];
+		tmp = 0.0;
+		for (i = 0; i < n_points; i++){
+		    tmp2 = (zeros[i] * sh_m[m] * M_SQRT2 + u_m[m]) *
+			g_u(u[i], ex) + g_m(u[i], m, ex);
+		    tmp += tmp2 * wght[i] * exp(g(u[i], ex));
+		}
+		hb[m] = tmp;
+
+/*  OLD way:
+		hb[m] = 0.0;
+		fam->m = m;
+		for(i = 0; i < n_points; i++){
+		    tmp = u[i];
+		    
+		    tmp2 = tmp;
+		    int_fun1(&tmp2, one, ex);
+		    hb[m] += tmp2 * wght[i];
+		}
+		hb[m] = sigma_hat * M_SQRT2 * hb[m];
 */
-	    /*
-	    Rprintf("hb[%d] med GHQ = %f\n", m, hb[m]);
-	    */
-	    fam->m = m;
-	    Rdqagi(int_fun1, fam, &bound, &inf, &epsabs, &epsrel, &res,
-		   &abserr, &neval, &ier, &limit, &lenw, &last,
-		   iwork, work);
-	    if (ier) Rprintf("[update] (Warning) ier = %d, hb[%d] = %f\n", 
-			     ier, m, res);
-	    hb[m] = res;
-            /*
-	    Rprintf("hb[%d] med int = %f\n\n", m, hb[m]);
-	    */
+	    }else{ /* Laplace */
+		hb[m] = u_m[m] * gu + g_m(u_hat, m, ex);
+	    }  
+
 	}else{ /* p == m */
+
+	    /* GHQ: */
+	    if (n_points >= 2){
+		tmp = 0.0;
+		for (i = 0; i < n_points; i++){
+		    tmp2 = (zeros[i] * sh_s * M_SQRT2 + u_s) *
+			g_u(u[i], ex) + g_s(u[i], ex);
+		    tmp += tmp2 * wght[i] * exp(g(u[i], ex));
+		}
+		hb[m] = tmp;
+		
 /*
-	    hb[m] = 0.0;
-	    for(i = 0; i < n_points; i++){
-		tmp = sqrt(2.0) * x_val[i] * sigma_hat + u;
-		tmp2 = tmp;
-		int_fun1s(&tmp2, one, ex);
-		hb[m] += tmp2 * wght[i] 
-		    * exp(x_val[i] * x_val[i]);
-	    }
-	    hb[m] = sigma_hat * sqrt(2) * hb[m];
+		hb[m] = 0.0;
+		for(i = 0; i < n_points; i++){
+		    tmp = u[i];
+		    
+		    tmp2 = tmp;
+		    int_fun1s(&tmp2, one, ex);
+		    hb[m] += tmp2 * wght[i];
+		}
+		hb[m] = sigma_hat * M_SQRT2 * hb[m];
 */
-	    /*
-	    Rprintf("hb[%d] med GHQ = %f\n", m, hb[m]);
-	    */
-	    Rdqagi(int_fun1s, fam, &bound, &inf, 
-		   &epsabs, &epsrel, 
-		   &res, &abserr, &neval, &ier, 
-		   &limit, &lenw, &last,
-		   iwork, work);
-	    if (ier) Rprintf("[update] (Warning) ier = %d, hb[%d] = %f\n", 
-			     ier, m, res);
-	    hb[p] = res;
-	    /*
-	    Rprintf("hb[%d] med int = %f\n\n", p, hb[p]);
-	    */
+/*		Rprintf("hb[%d] = %f\n", m, hb[m]); */
+	    }else{ /* Laplace */
+		hb[m] = u_s * gu + g_s(u_hat, ex);
+/*		Rprintf("hb[%d] = %f\n", m, hb[m]); */
+	    }
 	}
     }
 
     
-    /* Add into first derivatives: */
-    for (m = 0; m <= p; m++){
-	score[m] += hb[m] / h;
+    /* Add into first derivatives: KOLLA HÄR!??!!*/
+    if (n_points == 1){  
+	for (m = 0; m < p; m++){
+	    score[m] += sh_m[m] / sigma_hat + hb[m];
+	}
+	score[p] += sh_s / sigma_hat + hb[p];
+    }else{
+	for (m = 0; m < p; m++){
+	    score[m] += sh_m[m] / sigma_hat + hb[m] / h;
+	}
+	score[p] += sh_s / sigma_hat + hb[p] / h;
     }
 
     if (level == 1){
-	Free(hbb);
+	Free(u);
+	Free(wght);
 	Free(hb);
 	Free(iwork);
 	Free(work);
+	Free(u_m);
+	Free(sh_m);
+
 	return;
     }
 	
 /***********************************************************************/
 /* Done with first derivatives. On to the hessian: */
 
-    /* First the pxp matrix of 'coefficients': */
-    for (m = 0; m < p; m++){
-	for (k = 0; k <= m; k++){
-/*
-	    hbb[m + k * (p + 1)] = 0.0;
-	    fam->m = m;
-	    fam->k = k;
-	    for(i = 0; i < n_points; i++){
-		tmp = sqrt(2.0) * x_val[i] * sigma_hat + u;
-		tmp2 = tmp;
-		int_fun2(&tmp2, one, ex);
-		hbb[m + k * (p + 1)] += tmp2 * wght[i] 
-		    * exp(x_val[i] * x_val[i]);
-	    }
-	    hbb[m + k * (p + 1)] = sigma_hat * sqrt(2) * 
-		hbb[m + k * (p + 1)];
-*/
-	    /*
-	    Rprintf("hbb[%d][%d] med GHQ = %f\n", m, k, hbb[m + k * (p + 1)]);
-	    */
-	    fam->m = m;
-	    fam->k = k;
-	    Rdqagi(int_fun2, fam, &bound, &inf, &epsabs, &epsrel, &res,
-		   &abserr, &neval, &ier, &limit, &lenw, &last,
-		   iwork, work);
-	    if (ier) Rprintf("[update] (Warning) ier = %d, hbb[m][k] = %f\n", 
-			     ier, m, k, res);
+/* level >= 2 */
 
-	    hbb[m + k * (p + 1)] = res;
-	    /*
-	    Rprintf("hbb[%d][%d] med int = %f\n", m, k, hbb[m + k * (p + 1)]);
-	    */
+    u_sm = Calloc(p, double);
+    u_mkvec = Calloc(p * p, double);
+    u_mk = Calloc(p, double *);
+    for (m = 0; m < p; m++){
+	u_mk[m] = u_mkvec + m * p;
+    }
+
+    u_ss = sigma2_hat * (R_pow_di(u_s, 2) * guuu + 
+			 2.0 * u_s * g_uus(u_hat, ex) +
+			 g_uss(u_hat, ex));
+    /* Rprintf("u_ss = %f\n", u_ss); */
+    for (m = 0; m < p; m++){
+	u_sm[m] = sigma2_hat * (u_s * u_m[m] * guuu + 
+				u_s * g_uum(u_hat, m, ex) +
+				u_m[m] * g_uus(u_hat, ex) +
+				g_usm(u_hat, m, ex)); 
+
+	for (k = 0; k < p; k++){
+	    u_mk[m][k] = sigma2_hat * (u_m[k] * u_m[m] * guuu + 
+				       u_m[k] * g_uum(u_hat, m, ex) +
+				       u_m[m] * g_uum(u_hat, k, ex) +
+				       g_umk(u_hat, m, k, ex));
+	    /*  Rprintf("u_mk[%d][%d] = %f\n", m, k, u_mk[m, k]); */
+	}
+    }
+/*    for (m = 0; m < p; m++)Rprintf("u_sm[%d] = %f\n", m, u_sm[m]); */
+
+    sh_sm = Calloc(p, double);
+    sh_mkvec = Calloc(p * p, double);
+    sh_mk = Calloc(p, double *);
+    for (m = 0; m < p; m++){
+	sh_mk[m] = sh_mkvec + m * p;
+    }
+
+    guuuu = g_uuuu(u_hat, ex);
+    sh_ss = 0.75 * R_pow(sigma_hat, 5) * 
+	(u_s * guuu + g_uus(u_hat, ex)) *
+	(u_s * guuu + g_uus(u_hat, ex))
+	+ 0.5 * R_pow_di(sigma_hat, 3) *
+	(u_ss * guuu + u_s *u_s * guuuu + 
+	 u_s * g_uuus(u_hat, ex) + u_s * g_uuus(u_hat, ex) + 
+	 g_uuss(u_hat, ex));
+
+    for (m = 0; m < p; m++){
+	sh_sm[m] = 0.75 * R_pow(sigma_hat, 5) * 
+	    (u_m[m] * guuu + g_uum(u_hat, m, ex)) *
+	    (u_s * guuu + g_uus(u_hat, ex))
+	    + 0.5 * R_pow_di(sigma_hat, 3) *
+	    (u_sm[m] * guuu + u_s *u_m[m] * guuuu + 
+	     u_s * g_uuum(u_hat, m, ex) + u_m[m] * g_uuus(u_hat, ex) + 
+	     g_uusm(u_hat, m, ex));
+	for (k = 0; k < p; k++){
+	    sh_mk[m][k] = 0.75 * R_pow(sigma_hat, 5) * 
+	    (u_m[m] * guuu + g_uum(u_hat, m, ex)) *
+	    (u_m[k] * guuu + g_uum(u_hat, k, ex))
+	    + 0.5 * R_pow_di(sigma_hat, 3) *
+	    (u_mk[m][k] * guuu + 
+	     u_m[m] *u_m[k] * guuuu + 
+	     u_m[k] * g_uuum(u_hat, m, ex) + u_m[m] * g_uuum(u_hat, k, ex) + 
+	     g_uumk(u_hat, m, k, ex));
 	}
     }
 
+/********************************************************************/
+
+    hbb = Calloc((p + 1) * (p + 1), double);
+
+    /* First the pxp matrix of 'coefficients': */
+    if (n_points >= 2){
+	for (m = 0; m < p; m++){
+	    for (k = 0; k <= m; k++){
+		
+		hbb[m + k * (p + 1)] = 0.0;
+		fam->m = m;
+		fam->k = k;
+		for(i = 0; i < n_points; i++){
+		    tmp = u[i];
+		    tmp2 = tmp;
+		    int_fun2(&tmp2, one, ex);
+		    hbb[m + k * (p + 1)] += tmp2 * wght[i];
+		}
+		hbb[m + k * (p + 1)] = sigma_hat * sqrt(2) * 
+		    hbb[m + k * (p + 1)];
+		
+	    }
+	}
+    }else{ /* Laplace 'complete' */
+	for (m = 0; m < p; m++){
+	    for (k = 0; k <= m; k++){
+		fam->m = m;
+		fam->k = k;
+		hbb[m + k * (p + 1)] = 
+		    l_mk(u_hat, sigma2_hat, m, k, ex) +
+		    l_u(u_hat, sigma2_hat, ex) * 
+		    u_mk[m][k] +
+		    l_uu(u_hat, sigma2_hat, ex) * u_m[m] * u_m[k] +
+		    l_um(u_hat, sigma2_hat, m, ex) * u_m[k] +
+		    l_um(u_hat, sigma2_hat, k, ex) * u_m[m];
+	    }
+	}
+    }
     /* Then the "beta[m] with beta[p] = log(sigma), m = 0,...,(p-1) */
     m = p;
-    for (k = 0; k < m; k++){ /* Changed k <= m --> k < m */ 
-/*
-	hbb[m + k * (p + 1)] = 0.0;
-	for(i = 0; i < n_points; i++){
-	    tmp = sqrt(2.0) * x_val[i] * sigma_hat + u;
-	    tmp2 = tmp;
-	    int_fun2s(&tmp2, one, ex);
-	    hbb[m + k * (p + 1)] += tmp2 * wght[i] 
-		* exp(x_val[i] * x_val[i]);
-	}
-	hbb[m + k * (p + 1)] = sigma_hat * sqrt(2) * 
-	    hbb[m + k * (p + 1)];
-*/
-	/*
-	Rprintf("hbb[%d][%d] med GHQ = %f\n", m, k, hbb[m + k * (p + 1)]);
-	*/
-	fam->m = k;
-	fam->k = k;
-	Rdqagi(int_fun2s, fam, &bound, &inf, &epsabs, &epsrel, &res,
-	       &abserr, &neval, &ier, &limit, &lenw, &last,
-	       iwork, work);
-	if (ier) Rprintf("[update] (Warning) ier = %d, hb[%d][%d] = %f\n", 
-			 ier, m, k, res);
 
-	hbb[m + k * (p + 1)] = res;
-	/*
-	Rprintf("hbb[%d][%d] med int = %f\n", m, k, hbb[m + k * (p + 1)]);
-	*/
+    if (n_points >= 2){
+	for (k = 0; k < m; k++){ /* Changed k <= m --> k < m */ 
+	    fam->m = k;
+	    hbb[m + k * (p + 1)] = 0.0;
+	    for(i = 0; i < n_points; i++){
+		tmp = u[i];
+		tmp2 = tmp;
+		int_fun2s(&tmp2, one, ex);
+		hbb[m + k * (p + 1)] += tmp2 * wght[i];
+	    }
+	    hbb[m + k * (p + 1)] = sigma_hat * sqrt(2) * 
+		hbb[m + k * (p + 1)];
+	}
+    }else{ /* Laplace */
+	for (k = 0; k < m; k++){
+	    fam->m = k; /* Necessary ? */
+	    hbb[m + k * (p + 1)] = 
+		l_sm(u_hat, sigma2_hat, k, ex) +
+		l_u(u_hat, sigma2_hat, ex) * u_sm[k] +
+		l_uu(u_hat, sigma2_hat, ex) * u_s * u_m[k] +
+		l_us(u_hat, sigma2_hat, ex) * u_m[k] +
+		l_um(u_hat, sigma2_hat, k, ex) * u_s;
+		
+	}
     }
 
     /* And finally beta[p] with beta[p] (AKA log(sigma) = w): */
     k = p;
-/*
-    hbb[m + k * (p + 1)] = 0.0;
 
-    for(i = 0; i < n_points; i++){
-	tmp = sqrt(2.0) * x_val[i] * sigma_hat + u;
-	tmp2 = tmp;
-	int_funss(&tmp2, one, ex);
-	hbb[m + k * (p + 1)] += tmp2 * wght[i] 
-	    * exp(x_val[i] * x_val[i]);
+    if (n_points >= 2){
+
+	hbb[m + k * (p + 1)] = 0.0;
+	
+	for(i = 0; i < n_points; i++){
+	    tmp = u[i];
+	    tmp2 = tmp;
+	    int_funss(&tmp2, one, ex);
+	    hbb[m + k * (p + 1)] += tmp2 * wght[i];
+	}
+	hbb[m + k * (p + 1)] = sigma_hat * sqrt(2) * 
+	    hbb[m + k * (p + 1)];
+	/* Rprintf("hbb[%d] = %f------------\n", 
+		m + k * (p + 1), hbb[m + k * (p + 1)]);
+	*/
+    }else{ /* Laplace */
+	hbb[m + k * (p + 1)] = 
+	    l_ss(u_hat, sigma2_hat, ex) +
+	    l_u(u_hat, sigma2_hat, ex) * u_ss +
+	    l_uu(u_hat, sigma2_hat, ex) * u_s * u_s +
+	    2.0 * l_us(u_hat, sigma2_hat, ex) * u_s;
     }
-    hbb[m + k * (p + 1)] = sigma_hat * sqrt(2) * 
-	hbb[m + k * (p + 1)];
-*/
-    /*
-    Rprintf("hbb[%d][%d] med GHQ = %f\n", m, k, hbb[m + k * (p + 1)]);
-    */
-    Rdqagi(int_funss, fam, &bound, &inf, &epsabs, &epsrel, &res,
-	   &abserr, &neval, &ier, &limit, &lenw, &last,
-	   iwork, work);
-	    if (ier)
-		Rprintf("[update] (Warning) ier = %d, hbb[%d][%d] = %f\n", 
-			ier, m, k, hb[m]);
 
-    hbb[m + k * (p + 1)] = res;
-/*
-    Rprintf("hbb[%d][%d] med int = %f\n", m, k, hbb[m + k * (p + 1)]);    
-*/
    /* Now, add it into the hessian (lower triangle): */
-    for (m = 0; m <= p; m++){
-	for (k = 0; k <= m; k++){
-	    hessian[m + k * (p+1)] += hbb[m + k * (p+1)] / h  -   
-	    	(hb[m] / h) * (hb[k] / h); /* 0 at the solution? No!!! */
+    if (n_points >= 2){
+	for (m = 0; m <= p; m++){
+	    for (k = 0; k <= m; k++){
+		hessian[m + k * (p+1)] += hbb[m + k * (p+1)] / h  -   
+		    (hb[m] / h) * (hb[k] / h); /* 0 at the solution? No!!! */
+	    }
+	}
+    }else{ /* Laplace */
+	for (m = 0; m <= p; m++){
+	    for (k = 0; k <= m; k++){
+		hessian[m + k * (p+1)] += hbb[m + k * (p+1)]; /* - */    
+		    /* (hb[m]) * (hb[k]) */;  /* 0 at the solution? No!!! */
+	    }
 	}
     }
     /* Fill in the upper triangle (symmetry): Necessary?? */
@@ -983,11 +1858,23 @@ static void update(int level,
 
 /*********************************************************************/
 /* We are done! Clean up 'the mess'! */
-
+    Free(u);
+    Free(wght);
     Free(hbb);
     Free(hb);
     Free(iwork);
     Free(work);
+
+    Free(u_m);
+    Free(u_sm);
+    Free(u_mkvec);
+    Free(u_mk);
+
+    Free(sh_m);
+    Free(sh_sm);
+    Free(sh_mkvec);
+    Free(sh_mk);
+
 }
 
 static double frail_mean(int level,
@@ -998,7 +1885,7 @@ static double frail_mean(int level,
 			 double *hessian,
 			 Family *fam,
 			 int n_points,
-			 double *weights,
+			 double *wc,
 			 double *zeros){
     
     double h, h_mean;
@@ -1006,19 +1893,24 @@ static double frail_mean(int level,
     double tmp;
     int i, j;
     
-    sigma = exp(beta[p]);
+    sigma = beta[p];
 
 /**********************************************************************/    
-/* Calculate  h  for the loglik, and pip ("weights"): */
+/* Calculate  h  for the loglik, and pip ("wc"): */
     h = 0.0;
     h_mean = 0.0;
     for (i = 0; i < n_points; i++){
 	tmp = 1.0;
 	for (j = 0; j < fam->n; j++){
-	    tmp *= P(fam->x_beta[j] + zeros[i] * sigma, fam->y[j]);
+	    tmp *= P(fam->x_beta[j] + zeros[i] * sigma, 
+		     fam->yw[j], fam->weights[j]);
 	}
-	h += tmp * weights[i];
-	h_mean += tmp * weights[i] * zeros[i];
+	h += tmp * wc[i];
+	h_mean += tmp * wc[i] * zeros[i];
+/*
+	Rprintf("zeros[%d] = %f\n", i, zeros[i]);
+	Rprintf("h_mean = %f, h = %f\n", h_mean, h);
+*/
     }
 
     return ( h_mean / h);
@@ -1050,7 +1942,7 @@ void frail_fun(int pp1,
     fam->p = ext->p;
     fam->m = 0;
     fam->k = 0;
-    fam->sigma = exp(beta[ext->p]);
+    fam->sigma = beta[ext->p];
 
     loglik = 0.0;
 
@@ -1074,7 +1966,8 @@ void frail_fun(int pp1,
     for (i = 0; i < ext->n_fam; i++){
 	fam->n = ext->fam_size[i];
 	fam->x_beta = ext->x_beta + start;
-	fam->y = ext->y + start;
+	fam->yw = ext->yw + start;
+	fam->weights = ext->weights + start;
 	for (j = 0; j < ext->p; j++)	
 	    fam->x[j] = ext->x[j] + start;  /* check this! */
 
@@ -1086,7 +1979,7 @@ void frail_fun(int pp1,
 				       hessian,
 				       fam,
 				       ext->n_points,
-				       ext->weights,
+				       ext->wc,
 				       ext->zeros);
 	
 	start += ext->fam_size[i];
@@ -1117,7 +2010,7 @@ double fun(int pp1,
    x[p][n]
    y[n]
    fam_size[n_fam] { sum(fam_size) == n! }
-   points[n_points][2] : first col: abscissas, second: weights.
+   points[n_points][2] : first col: abscissas, second: wc.
 
    It is assumed that equal values in  'id'  comes together in groups.
 */
@@ -1149,10 +2042,13 @@ double fun(int pp1,
     fam->p = ext->p;
     fam->m = 0;
     fam->k = 0;
-    fam->sigma = exp(beta[ext->p]);
+    fam->sigma = beta[ext->p];
 
     loglik = 0.0;
-
+/*
+    for (i = 0; i < ext->p + 1; i++) 
+	Rprintf("[fun] beta[%d] = %f\n", i, beta[i]);
+*/
     for (i = 0; i < ext->n; i++){
 	tmp = ext->offset[i]; 
 	for (j = 0; j < ext->p; j++){
@@ -1173,7 +2069,8 @@ double fun(int pp1,
     for (i = 0; i < ext->n_fam; i++){
 	fam->n = ext->fam_size[i];
 	fam->x_beta = ext->x_beta + start;
-	fam->y = ext->y + start;
+	fam->yw = ext->yw + start;
+	fam->weights = ext->weights + start;
 	for (j = 0; j < ext->p; j++)	
 	    fam->x[j] = ext->x[j] + start;  /* check this! */
 	update(level,
@@ -1185,14 +2082,14 @@ double fun(int pp1,
 	       &post_mode,
 	       fam,
 	       ext->n_points,
-	       ext->weights,
+	       ext->wc,
 	       ext->zeros);
 	ext->post_mode[i] = post_mode;
 	start += ext->fam_size[i];
     }
     Free(fam->x);
     Free(fam);
-    /* printf("[fun]; loglik = %f\n", loglik); */ 
+    /* printf("[fun]; -loglik = %f\n", -loglik); */ 
     return ( -loglik ); /* Note: minimizing!!! */
 }
 
@@ -1226,7 +2123,7 @@ void fun1(int pp1,
     fam->p = ext->p;
     fam->m = 0;
     fam->k = 0;
-    fam->sigma = exp(beta[ext->p]);
+    fam->sigma = beta[ext->p];
 
     loglik = 0.0;
 
@@ -1247,7 +2144,8 @@ void fun1(int pp1,
     for (i = 0; i < ext->n_fam; i++){
 	fam->n = ext->fam_size[i];
 	fam->x_beta = ext->x_beta + start;
-	fam->y = ext->y + start;
+	fam->yw = ext->yw + start;
+	fam->weights = ext->weights + start;
 	for (j = 0; j < ext->p; j++)
 	    fam->x[j] = ext->x[j] + start; 
 	update(level,
@@ -1259,7 +2157,7 @@ void fun1(int pp1,
 	       &post_mode,
 	       fam,
 	       ext->n_points,
-	       ext->weights,
+	       ext->wc,
 	       ext->zeros);
 	ext->post_mode[i] = post_mode;
 	start += ext->fam_size[i];
@@ -1267,6 +2165,10 @@ void fun1(int pp1,
 
     for (i = 0; i < pp1; i++){
 	gr[i] = -gr[i]; /* Minimization! */
+/*
+	Rprintf("gr[%d] = %f   ", i, gr[i]);
+	Rprintf("beta[%d] = %f\n", i, beta[i]);
+*/
     }
 
     Free(fam->x);
@@ -1297,7 +2199,7 @@ void fun2(int pp1,
     fam->p = ext->p;
     fam->m = 0;
     fam->k = 0;
-    fam->sigma = exp(beta[ext->p]);
+    fam->sigma = beta[ext->p];
 
     *loglik = 0.0;
 
@@ -1321,7 +2223,8 @@ void fun2(int pp1,
     for (i = 0; i < ext->n_fam; i++){
 	fam->n = ext->fam_size[i];
 	fam->x_beta = ext->x_beta + start;
-	fam->y = ext->y + start;
+	fam->yw = ext->yw + start;
+	fam->weights = ext->weights + start;
 	for (j = 0; j < ext->p; j++)
 	    fam->x[j] = ext->x[j] + start; /* check this! */
 
@@ -1334,15 +2237,15 @@ void fun2(int pp1,
 	       &post_mode,
 	       fam,
 	       ext->n_points,
-	       ext->weights,
+	       ext->wc,
 	       ext->zeros);
 	ext->post_mode[i] = post_mode;
         start += ext->fam_size[i];
-	}
+    }
 
-   for (i = 0; i < pp1 * pp1; i++){
+    for (i = 0; i < pp1 * pp1; i++){
 	hessian[i] = -hessian[i];
     }
-   Free(fam->x);
-   Free(fam);
+    Free(fam->x);
+    Free(fam);
 }

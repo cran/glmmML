@@ -8,7 +8,7 @@
 
 extern P_fun *P;
 extern G_fun *G;
-extern Gprim_fun *Gprim;
+extern H_fun *H;
 
 static void permute(int n, int *y, int *x)
 {
@@ -33,8 +33,9 @@ void glmm_boot(int *family,
 	       int *p, 
 	       double *start_beta,
 	       int *cluster,
+	       double *weights,
 	       double *x, /* Now p x (\sum_1_{n_fam} fam_size[i]) */
-	       int *y,
+	       double *y,
 	       double *offset,
 	       int *fam_size,
 	       int *n_fam,
@@ -81,15 +82,15 @@ void glmm_boot(int *family,
     if (*family == 0){
 	P = &P_logit;
 	G = &G_logit;
-	Gprim = &Gprim_logit;
+	H = &H_logit;
     }else if (*family == 1){
 	P = &P_cloglog;
 	G = &G_cloglog;
-	Gprim = &Gprim_cloglog;
+	H = &H_cloglog;
     }else if (*family == 2){
 	P = &P_poisson;
 	G = &G_poisson;
-	Gprim = &Gprim_poisson;
+	H = &H_poisson;
     }else{
 	error("Unknown family\n");
     }
@@ -132,8 +133,10 @@ void glmm_boot(int *family,
     ext->gamma = Calloc(ext->n_fam, double);
     ext->gr = Calloc(ext->p, double);
     ext->hessian = Calloc(ext->p * ext->p, double);
-    ext->y = Calloc(ext->n, int);
-    for (i = 0; i < ext->n; i++) ext->y[i] = y[i];
+    ext->yw = Calloc(ext->n, double);
+    for (i = 0; i < ext->n; i++) 
+	ext->yw[i] = y[i] * weights[i];
+    ext->weights = weights;
 /**************** Filled in ext  *************************/
     mask = Calloc(ext->p, int);    
 
@@ -213,24 +216,26 @@ void glmm_boot(int *family,
 	    if ((i / 10) * 10 == i)
 		printf("********************* Replicate No. No. %d\n", i);
 	    /* } */
-	if (*conditional){
-/* Conditional bootstrap */
+/*	if (*conditional){
+
 	    permute(ext->n, ki, ki_tmp);
 	    for (j = 0; j < ext->n; j++){
-		ext->y[j] = y[ki[j]];
+		ext->yw[j] = y[ki[j]] * weights[ki[j]];
+		ext->weights[j] = weights[ki[j]];
 		ext->x[j] = x + ki[j] * (ext->p);
 		ext->offset[j] = offset[ki[j]];
 		ext->cluster[j] = cluster[ki[j]];
 	    }
 	}else{
+*/
 	    if (*family <= 1){ /* Bernoulli */
 		for (j = 0; j < ext->n; j++)
-		    ext->y[j] = rbinom(1, predicted[j]);
+		    ext->yw[j] = rbinom((int)weights[j], predicted[j]);
 	    }else{
 		for (j = 0; j < ext->n; j++) /* Poisson */
-		    ext->y[j] = rpois(predicted[j]);
+		    ext->yw[j] = rpois(weights[j] * predicted[j]);
 	    }
-	}
+/*	} */
 /* Restore beta as start values: */
 	for ( j = 0; j < *p; j++) b[j] = beta[j];
 	
@@ -252,7 +257,7 @@ void glmm_boot(int *family,
 
 /*    vmaxset(vmax1); */
 
-    Free(ext->y);
+    Free(ext->yw);
     Free(ext->hessian);
     Free(ext->gr);
     Free(ext->gamma);

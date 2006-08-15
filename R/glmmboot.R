@@ -2,6 +2,7 @@ glmmboot <- function(formula,
                      family = binomial,
                      data,
                      cluster,
+                     weights,
                      subset,
                      na.action,
                      offset,
@@ -77,11 +78,14 @@ glmmboot <- function(formula,
         return(NULL)
     }    
 
-    if (NCOL(Y) >  1) stop("Response must be univariate")
+    ## if (NCOL(Y) >  1) stop("Response must be univariate")
     
     if (!is.null(offset) && length(offset) != NROW(Y)) 
         stop(paste("Number of offsets is", length(offset), ", should equal", 
                    NROW(Y), "(number of observations)"))
+
+    if (missing(weights)) weights <- rep.int(1, NROW(Y))
+    if (any(weights < 0)) stop("negative weights not allowed")
     
     ## Remove eventual intercept from X.
     ## Taken care of thru separate intercepts for each 'cluster'.
@@ -93,6 +97,7 @@ glmmboot <- function(formula,
 
     fortran <- TRUE
     res <- glmmbootFit(X, Y,
+                       weights,
                        start.coef,
                        cluster,
                        offset,
@@ -107,7 +112,7 @@ glmmboot <- function(formula,
     res$deviance <- -2 * res$logLik
     nvars <- NCOL(X) - 1 + length(unique(cluster))
     res$df.residual <- length(Y) - nvars
-    res$aic <- res$deviance + 2 * nvars
+    res$aic <- res$deviance + 2 * nvars ## CHECK this !!
     res$boot <- TRUE
     res$call <- cl
     if (!is.null(res$coefficients))
