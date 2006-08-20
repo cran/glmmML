@@ -1,3 +1,4 @@
+\encoding{UTF-8}
 \name{summary.glmmboot}
 \alias{summary.glmmboot}
 %- Also NEED an '\alias' for EACH other topic documented here.
@@ -19,21 +20,14 @@ summary.glmmboot(object, ...)
 \value{
 Nothing is returned.
 }
-\references{See }
-\author{Göran Broström}
+%\references{See }
+\author{GÃ¶ran BrostrÃ¶m}
 \note{Preliminary}
 
  
 \seealso{\code{\link{print.glmmboot}}}
-\examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function(object, ...){
-    print.glmmboot(object, ...)
-  }
-}
+%\examples{
+%
+%}
 \keyword{print}% at least one, from doc/KEYWORDS
 

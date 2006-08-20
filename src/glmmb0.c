@@ -28,14 +28,12 @@ static void permute(int n, int *y, int *x)
 }
 
 void glmm_boot0(int *family,
-		int *method,
 		int *cluster,
 		double *weights,
 		double *y,
 		double *offset,
 		int *fam_size,
 		int *n_fam,
-		int *conditional,
 		int *trace,
 		int *boot,
 		double *predicted,
@@ -157,24 +155,15 @@ void glmm_boot0(int *family,
 	if ((i / 10) * 10 == i)
 	    if (*trace)
 		printf("****************************** Replicate No. %d\n", i);
-	if (*conditional){
-	    permute(ext->n, ki, ki_tmp);
-	    for (j = 0; j < ext->n; j++){
-		ext->yw[j] = y[ki[j]] * weights[ki[j]];
-		ext->weights[j] = weights[j];
-		ext->offset[j] = offset[ki[j]];
-		ext->cluster[j] = cluster[ki[j]];
-	    }
+	if (*family <= 1){
+	    for (j = 0; j < ext->n; j++)
+		ext->yw[j] = rbinom((int)weights[j], predicted[j]);
 	}else{
-	    if (*family <= 1){
-		for (j = 0; j < ext->n; j++)
-		    ext->yw[j] = rbinom((int)weights[j], predicted[j]);
-	    }else{
-		for (j = 0; j < ext->n; j++)
-		    ext->yw[j] = rpois(weights[j] * predicted[j]);
-	    }		
-	}
-
+	    for (j = 0; j < ext->n; j++)
+		ext->yw[j] = rpois(weights[j] * predicted[j]);
+	}		
+	
+	
 	Fmin = bfun(ext->p, b, ext);
 	boot_log[i] = -Fmin;
 	if (-Fmin >= *loglik) upper++;
@@ -182,11 +171,11 @@ void glmm_boot0(int *family,
 
     if (*boot) *boot_p = (double)upper / (double)*boot;
     else *boot_p = 1.0;
-
+    
     PutRNGstate();
-
+    
 /*    vmaxset(vmax1); */
-
+    
     Free(ext->yw);
     Free(ext->gamma);
     Free(ext->cluster);

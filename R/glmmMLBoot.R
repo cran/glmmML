@@ -3,12 +3,9 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
                          cluster = rep(1, length(Y)),                        
                          offset = rep(0, length(Y)),
                          family = binomial(),
-                         conditional = FALSE,
                          control = list(epsilon = 1.e-8, maxit = 200,
                            trace = FALSE), 
-                         boot = 0,
-                         method = 1,
-                         fortran = TRUE){
+                         boot = 0){
 
     if (is.list(control)) {
         if (is.null(control$epsilon))
@@ -22,8 +19,6 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
         stop("control must be a list")
     }
 
-    method <- 1
-    fortran <- TRUE
     X <- as.matrix(X)
 
     nobs <- NROW(Y)
@@ -105,132 +100,88 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
   
     ## cat("nFam = ", nFam, "\n")
 
-    if (fortran){
-        if (p >= 1){
-            means <- colMeans(X)
-            X <- scale(X, center = TRUE, scale = FALSE)
-    
-            fit <- .C("glmm_boot",
-                      as.integer(fam),
-                      as.integer(method),
-                      as.integer(p),
-                      as.double(start.coef),
-                      as.integer(cluster),
-                      as.double(weights),
-                      as.double(t(X)),       # Note! #
-                      as.double(Y),
-                      as.double(offset),
-                      as.integer(famSize),
-                      as.integer(nFam),
-                      as.integer(conditional),
-                      as.double(control$epsilon),
-                      as.integer(control$maxit),
-                      as.integer(control$trace),
-                      as.integer(boot),
-                      beta = double(p),
-                      predicted = as.double(predicted), # Watch up! #
-                      loglik = double(1),
-                      hessian = double(p * p),
-                      frail = double(nFam),
-                      bootP = double(1),
-                      bootLog = double(boot),
-                      convergence = integer(1)
-                      )
-            res <- list(coefficients = fit$beta,
-                        logLik = fit$loglik,
-                        cluster.null.deviance = cluster.null.deviance,
-                        frail = fit$frail,
-                        bootLog = fit$bootLog,
-                        bootP = fit$bootP)
-            res$variance <- solve(-matrix(fit$hessian, nrow = p, ncol = p))
+    if (p >= 1){
+        means <- colMeans(X)
+        X <- scale(X, center = TRUE, scale = FALSE)
+        
+        fit <- .C("glmm_boot",
+                  as.integer(fam),
+                  as.integer(p),
+                  as.double(start.coef),
+                  as.integer(cluster),
+                  as.double(weights),
+                  as.double(t(X)),       # Note! #
+                  as.double(Y),
+                  as.double(offset),
+                  as.integer(famSize),
+                  as.integer(nFam),
+                  as.double(control$epsilon),
+                  as.integer(control$maxit),
+                  as.integer(control$trace),
+                  as.integer(boot),
+                  beta = double(p),
+                  predicted = as.double(predicted), # Watch up! #
+                  loglik = double(1),
+                  variance = double(p * p),
+                  info = integer(1),
+                  frail = double(nFam),
+                  bootP = double(1),
+                  bootLog = double(boot),
+                  convergence = integer(1)
+                  )
+        res <- list(coefficients = fit$beta,
+                    logLik = fit$loglik,
+                    cluster.null.deviance = cluster.null.deviance,
+                    frail = fit$frail,
+                    bootLog = fit$bootLog,
+                    bootP = fit$bootP,
+                    info = fit$info)
+        if (!fit$info){
+            res$variance <- matrix(-fit$variance, nrow = p, ncol = p)
             res$sd <- sqrt(diag(res$variance))
-            res$boot_rep <- boot
-
-            return(res)
-        }else{ # A null model:
-
-            fit <- .C("glmm_boot0",
-                      as.integer(fam),
-                      as.integer(method),
-                      ##as.integer(p),
-                      ##as.double(start.coef),
-                      as.integer(cluster),
-                      as.double(weights),       ## Note! ##
-                      as.double(Y),
-                      as.double(offset),
-                      as.integer(famSize),
-                      as.integer(nFam),
-                      as.integer(conditional),
-                      ##as.double(control$epsilon),
-                      ##as.integer(control$maxit),
-                      as.integer(control$trace),
-                      as.integer(boot),
-                      predicted = as.double(predicted),
-                      ##beta = double(p),
-                      loglik = double(1),
-                      ##hessian = double(p * p),
-                      frail = double(nFam),
-                      bootP = double(1),
-                      bootLog = double(boot),
-                      convergence = integer(1)
-                      )
-            res <- list(coefficients = NULL,
-                        logLik = fit$loglik,
-                        cluster.null.deviance = cluster.null.deviance,
-                        frail = fit$frail,
-                        bootLog = fit$bootLog,
-                        bootP = fit$bootP)
+        }else{
             res$variance <- NULL
             res$sd <- NULL
-            res$boot_rep <- boot
-
-            return(res)
         }
-
-    }else{
+        res$boot_rep <- boot
         
-        fit <- snut(Y, X, cluster, offset)
+        return(res)
+    }else{ # A null model:
         
-        if (boot < 1) error("boot must be at least 1")
-        logl <- numeric(boot + 1)
-        logl[1] <- -fit$value
+        fit <- .C("glmm_boot0",
+                  as.integer(fam),
+                  ##as.integer(p),
+                  ##as.double(start.coef),
+                  as.integer(cluster),
+                  as.double(weights),       ## Note! ##
+                  as.double(Y),
+                  as.double(offset),
+                  as.integer(famSize),
+                  as.integer(nFam),
+                  ##as.double(control$epsilon),
+                  ##as.integer(control$maxit),
+                  as.integer(control$trace),
+                  as.integer(boot),
+                  predicted = as.double(predicted),
+                  ##beta = double(p),
+                  loglik = double(1),
+                  ##hessian = double(p * p),
+                  frail = double(nFam),
+                  bootP = double(1),
+                  bootLog = double(boot),
+                  convergence = integer(1)
+                  )
+        res <- list(coefficients = NULL,
+                    logLik = fit$loglik,
+                    cluster.null.deviance = cluster.null.deviance,
+                    frail = fit$frail,
+                    bootLog = fit$bootLog,
+                    bootP = fit$bootP)
+        res$variance <- NULL
+        res$sd <- NULL
+        res$boot_rep <- boot
         
-        for (i in 2:(boot + 1)){
-            if (control$trace)
-              cat("****************** Replicate ", i-1, "\n")
-            cluster <- sample(cluster)
-            ord <- order(cluster)
-            cluster <- cluster[ord]
-            Y <- Y[ord]
-            X <- X[ord, ,drop = FALSE]
-            
-            logl[i] <- -snut(Y, X, cluster, offset)$value
-        }
-        
-        ##cat("logl = ", logl, "\n")
-        p.value <- 1 - rank(logl, ties.method = "first")[1] / (boot + 1)  
-        
-        nvars <- length(unique(cluster))
-        nvar <- length(fit$par)
-        aic.model <- 2 * fit$value + 2 * nvars ## STRANGE ?! (nvar?)
-        ## Note difference between nvar & nvars!
-        n.fam <- nvar - p
-        list(beta = fit$par[(n.fam + 1):nvar],
-             loglik = -fit$value,
-             ##coef.variance = vari[1:p, 1:p, drop = FALSE],
-             frail = fit$par[1:n.fam],
-             ##residuals = residuals,
-             ##fitted.values = fit$mu, 
-             ##family = family,
-             null.cluster.deviance = null.cluster.deviance,
-             deviance = 2*fit$value,
-             aic = aic.model, 
-             ##null.deviance = nulldev,
-             ##df.residual = NROW(Y) - NCOL(X) - as.integer(mixed),
-             ##df.null = NROW(Y) - as.integer(intercept),
-             ##y = y,
-             ##convergence = fit$convergence
-             frail.p = p.value
-             )
+        return(res)
     }
+    
 }

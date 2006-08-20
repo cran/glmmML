@@ -36,7 +36,6 @@ static void permute(int n, int *y, int *x)
 }
 
 void glmm_ml(int *family,
-	     int *method,
 	     int *p, 
 	     double *start_beta,
 	     int *cluster,
@@ -111,7 +110,6 @@ void glmm_ml(int *family,
     if (*trace){
 	Rprintf("************* Entering [glmmml] **************** \n");
 	Rprintf(" p = %d\n\n", *p);
-	/* Rprintf(" method = %d\n\n", *method); */ 
     }
 
     det = Calloc(2, double);
@@ -144,7 +142,13 @@ void glmm_ml(int *family,
 	d2_logprior = &d2_logprior_logistic;
 	d3_logprior = &d3_logprior_logistic;
 	d4_logprior = &d4_logprior_logistic;
-    }else{
+    }else if (*prior == 2){
+	logprior = &logprior_cauchy;
+	d_logprior = &d_logprior_cauchy;
+	d2_logprior = &d2_logprior_cauchy;
+	d3_logprior = &d3_logprior_cauchy;
+	d4_logprior = &d4_logprior_cauchy;
+    }else{	
 	logprior = &logprior_normal;
 	d_logprior = &d_logprior_normal;
 	d2_logprior = &d2_logprior_normal;
@@ -237,7 +241,6 @@ void glmm_ml(int *family,
 */  
 /*    error("Let us stop here"); */
 
-    /*  if (*method || *fix_sigma){ */ /* If sigma fixed: use vmmin! */
 	vmax = vmaxget();
 	
 	vmmin(bdim, b, &Fmin,
@@ -258,9 +261,11 @@ void glmm_ml(int *family,
 	Rprintf("[glmmml] fail = %d\n", fail);
 	error(msg);
     }
-
+/*
     fun1(bdim, b, gr, ext);
+*/
     fun2(bdim, b, &Fmin, gr, hess_vec, ext);
+
     if(*trace){
 	Rprintf("Max log likelihood after vmmin: %f\n", -Fmin);
 	printf("beta: ");
@@ -336,12 +341,13 @@ void glmm_ml(int *family,
 	}
     }
 
+/* Cancelled for the time being...
     frail_fun(bdim, b, ext);
     mu_fun(bdim, b, mu, ext);
-
+*/
     for (i = 0; i < ext->n_fam; i++){
 	post_mode[i] = ext->post_mode[i];
-	post_mean[i] = ext->post_mean[i];
+	/* post_mean[i] = ext->post_mean[i]; */
     }
 
     if ((*boot > 0) & !(*fix_sigma)){

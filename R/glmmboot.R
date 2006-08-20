@@ -6,7 +6,6 @@ glmmboot <- function(formula,
                      subset,
                      na.action,
                      offset,
-                     conditional = FALSE,
                      start.coef = NULL,
                      control = list(epsilon = 1.e-8,
                      maxit = 200, trace = FALSE),
@@ -24,8 +23,6 @@ glmmboot <- function(formula,
         stop("control must be a list")
     }
 
-    method <- 1 ## Always vmmin! 1 if vmmin, 0 otherwise
-    if (!method) stop("Use default method (the only available at present)")
     cl <- match.call()
 
     if (is.character(family)) 
@@ -45,7 +42,7 @@ glmmboot <- function(formula,
     
     mf$family <- mf$start.coef <- mf$start.sigma <- NULL
     mf$control <- mf$maxit <- mf$boot <- mf$conditional <- NULL
-    mf$n.points <- mf$method <- mf$start.coef <- NULL
+    mf$n.points <- mf$start.coef <- NULL
     mf[[1]] <- as.name("model.frame") # turn into a call to model.frame
     mf <- eval(mf, environment(formula)) # run model.frame
     
@@ -95,18 +92,14 @@ glmmboot <- function(formula,
     ##if (!is.na(coli <- match("(Intercept)", colnames(X))))
     ##    X <- X[, -coli, drop = FALSE]
 
-    fortran <- TRUE
     res <- glmmbootFit(X, Y,
                        weights,
                        start.coef,
                        cluster,
                        offset,
                        family,
-                       conditional,
                        control,
-                       boot,
-                       method,
-                       fortran)
+                       boot)
     
     res$mixed <- FALSE # ??????????????????
     res$deviance <- -2 * res$logLik

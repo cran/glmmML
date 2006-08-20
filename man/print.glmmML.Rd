@@ -1,3 +1,4 @@
+\encoding{UTF-8}
 \name{print.glmmML}
 \alias{print.glmmML}
 \title{Prints a 'glmmML' object.}
@@ -20,35 +21,13 @@ Nothing in particular.
 \value{
   A short summary of the object is printed.
 }
-\references{Broström (2003)}
-\author{Göran Broström}
+%\references{\enc{BrostrÃ¶m}{Brostrom} (2003)}
+\author{\enc{GÃ¶ran BrostrÃ¶m}{Goran Brostrom}}
 \note{This is the only summary method available for the moment.}
 
 \seealso{\code{\link{glmmML}}}
 
-\examples{
-## The function is currently defined as
-function (x, digits = max(3, getOption("digits") - 3), na.print = "", 
-    ...) 
-{
-  cat("\nCall: ", deparse(x$call), "\n\n")
-  cat("Coefficients:\n")
-  print.default(format(x$coefficients, digits = digits), print.gap = 2, 
-                quote = FALSE)
-  cat("Standard errors:\n")
-  print.default(format(x$sd, digits = digits), print.gap = 2, 
-                quote = FALSE)
-  if(x$mixed){
-    cat("Standard deviation in mixing distribution: ", x$sigma, "\n")
-    cat("Std. Error:                                ", x$sigma.sd, "\n")
-  }
-  cat("\nDegrees of Freedom:", 
-      x$df.residual, "Residual\n")
-  cat("Residual Deviance:",
-      format(signif(x$deviance, digits)),
-      "\tAIC:",
-      format(signif(x$aic, digits)), "\n")
-  invisible(x)
-  }
-}
+%\examples{
+%
+%}
 \keyword{print}% at least one, from doc/KEYWORDS

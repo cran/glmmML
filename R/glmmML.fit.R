@@ -3,19 +3,16 @@ glmmML.fit <- function (X, Y,
                         start.coef = NULL, 
                         start.sigma = NULL,
                         fix.sigma = FALSE,
-                        mixed = TRUE,
                         cluster = NULL,                        
                         offset = rep(0, nobs),
                         family = binomial(),
-                        n.points = 15,
+                        n.points = 1,
                         control = list(epsilon = 1.e-8, maxit = 200,
                           trace = FALSE),
-                        method = 0,
                         intercept = TRUE,
                         boot = 0,
                         prior = 0){
 
-    cat("prior = ", prior, "\n")
     if (is.list(control)) {
         if (is.null(control$epsilon))
           control$epsilon <- 1e-08
@@ -28,11 +25,6 @@ glmmML.fit <- function (X, Y,
         stop("control must be a list")
     }
                             
-    if (!mixed){
-        warning("mixed = FALSE not allowed; changed to TRUE")
-        mixed <- TRUE
-    }
-
     X <- as.matrix(X)
     conv <- FALSE
     nobs <- NROW(Y)
@@ -153,7 +145,6 @@ glmmML.fit <- function (X, Y,
 
     fit <- .C("glmm_ml",
               as.integer(fam),
-              as.integer(method),
               as.integer(p), 
               as.double(start.coef),
               as.integer(cluster),
@@ -240,7 +231,7 @@ glmmML.fit <- function (X, Y,
          deviance = -2*fit$loglik,
          aic = aic.model, 
                                         #null.deviance = nulldev,
-         df.residual = NROW(Y) - NCOL(X) - as.integer(mixed),
+         df.residual = NROW(Y) - NCOL(X) - 1,
          df.null = NROW(Y) - as.integer(intercept),
                                         #y = y,
          cluster.null.deviance = cluster.null.deviance,

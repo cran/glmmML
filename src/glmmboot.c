@@ -29,7 +29,6 @@ static void permute(int n, int *y, int *x)
 }
 
 void glmm_boot(int *family,
-	       int *method,
 	       int *p, 
 	       double *start_beta,
 	       int *cluster,
@@ -39,7 +38,6 @@ void glmm_boot(int *family,
 	       double *offset,
 	       int *fam_size,
 	       int *n_fam,
-	       int *conditional,
 	       double *epsilon,
 	       int *maxit,
 	       int *trace,
@@ -47,7 +45,8 @@ void glmm_boot(int *family,
 	       double *beta,
 	       double *predicted,
 	       double *loglik,
-	       double *hessian,
+	       double *variance,
+	       int *info, 
 	       double *frail,
 	       double *boot_p,
 	       double *boot_log,
@@ -74,6 +73,25 @@ void glmm_boot(int *family,
     double *gr;
     int upper;
     char *vmax;
+    int bdim, m, k;
+
+    double ** hessian;
+    double *hess_vec;
+
+    double *det;
+    int lwork;
+    double *work;
+    double rcond;
+    int job = 11;
+
+    bdim = *p;
+    lwork = 11 * (*p);
+    work = Calloc(lwork, double);
+    det = Calloc(2, double);
+
+    hessian = Calloc(bdim, double *);
+    hess_vec = Calloc(bdim * bdim, double);
+    for (j = 0; j < bdim; j++) hessian[j] = hess_vec + j * bdim;
 
     GetRNGstate(); /* For random number generation */
 
@@ -196,7 +214,7 @@ void glmm_boot(int *family,
 	    predicted[j] = exp(ext->x_beta[j]);
     }
 */
-    bfun_hess(*p, beta, hessian, ext);
+    bfun_hess(*p, beta, hess_vec, ext);
 
 /*
     Rprintf("Hessian...\n\n");
@@ -207,35 +225,38 @@ void glmm_boot(int *family,
 	Rprintf("\n");
     }
 */
+
+    F77_CALL(dpoco)(*hessian, &bdim, &bdim, &rcond, work, info);
+    if (*info == 0){
+	F77_CALL(dpodi)(*hessian, p, p, det, &job);
+	for (m = 0; m < bdim; m++){
+	    for (k = 0; k < m; k++){
+		hessian[k][m] = hessian[m][k];
+	    }
+	}
+	
+    }else{
+	Rprintf("info = %d\n", *info);
+	warning("Hessian non-positive definite. No variance!");
+    }
+
     upper = 0;
 
 /************** Bootstrapping starts *****************************/
  
     for (i = 0; i < *boot; i++){
-	/* if (*trace){ */
+	if (*trace){
 	    if ((i / 10) * 10 == i)
 		printf("********************* Replicate No. No. %d\n", i);
-	    /* } */
-/*	if (*conditional){
-
-	    permute(ext->n, ki, ki_tmp);
-	    for (j = 0; j < ext->n; j++){
-		ext->yw[j] = y[ki[j]] * weights[ki[j]];
-		ext->weights[j] = weights[ki[j]];
-		ext->x[j] = x + ki[j] * (ext->p);
-		ext->offset[j] = offset[ki[j]];
-		ext->cluster[j] = cluster[ki[j]];
-	    }
+	}
+	if (*family <= 1){ /* Bernoulli */
+	    for (j = 0; j < ext->n; j++)
+		ext->yw[j] = rbinom((int)weights[j], predicted[j]);
 	}else{
-*/
-	    if (*family <= 1){ /* Bernoulli */
-		for (j = 0; j < ext->n; j++)
-		    ext->yw[j] = rbinom((int)weights[j], predicted[j]);
-	    }else{
-		for (j = 0; j < ext->n; j++) /* Poisson */
-		    ext->yw[j] = rpois(weights[j] * predicted[j]);
-	    }
-/*	} */
+	    for (j = 0; j < ext->n; j++) /* Poisson */
+		ext->yw[j] = rpois(weights[j] * predicted[j]);
+	}
+
 /* Restore beta as start values: */
 	for ( j = 0; j < *p; j++) b[j] = beta[j];
 	
@@ -256,6 +277,12 @@ void glmm_boot(int *family,
     PutRNGstate();
 
 /*    vmaxset(vmax1); */
+
+
+    Free(hessian);
+    Free(hess_vec);
+    Free(det);
+    Free(work);
 
     Free(ext->yw);
     Free(ext->hessian);

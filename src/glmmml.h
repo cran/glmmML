@@ -54,7 +54,6 @@ typedef struct
 Family;
 
 void glmm_ml(int *family,
-             int *method,
              int *p, 
              double *start_beta,
 	     int *cluster,

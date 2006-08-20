@@ -243,6 +243,8 @@ double d2_logprior_logistic(double u){
     double location = 0.0;
     double scale = 1.0;
 
+/* -2.0 * exp(u) / (1.0 + exp(u))^2 */
+
     return ( -2.0 * dlogis(u, location, scale, give_log) );
 
 }
@@ -252,21 +254,67 @@ double d3_logprior_logistic(double u){
     double s;
 
     s = exp(u);
-    return ( -2.0 * s * (1.0 - s) / R_pow_di(1 + s, 2) );
+
+/* -2.0 * exp(u) * (1.0 - exp(u)) / (1.0 + exp(u))^3 */
+
+    return ( -2.0 * s * (1.0 - s) / R_pow_di(1 + s, 3) );
 
 }
 
 double d4_logprior_logistic(double u){
 
-    double s, s2, s3;
+    double s, s2;
 
     s = exp(u);
     s2 = R_pow_di(s, 2);
-    s3 = R_pow_di(s, 3);
 
-    return ( -2.0 * (s3 - 4.0 * s2 + s) / R_pow_di(1 + s, 4) );
+    return ( 2.0 * s * (2.0 * s - 1.0) / R_pow_di(1 + s, 3) +
+	6.0 * s2 * (1.0 - s) / R_pow_di(1 + s, 4) );
 
 }
+
+double logprior_cauchy(double u){
+
+  /* M_PI = pi */
+
+    return( -log(M_PI) -log(1.0 + R_pow_di(u, 2)) );
+}
+
+double d_logprior_cauchy(double u){
+
+  /* M_PI = pi */
+
+    return( -2.0 * u / (1.0 + R_pow_di(u, 2)) );
+}
+
+double d2_logprior_cauchy(double u){
+
+    double u2;
+
+    u2 = R_pow_di(u, 2);
+
+    return( 2.0 * (u2 - 1) / R_pow_di(u2 + 1, 2) );
+}
+
+double d3_logprior_cauchy(double u){
+
+    double u2;
+
+    u2 = R_pow_di(u, 2);
+
+    return( 4.0 * u * (3.0 - u2) / R_pow_di(u2 + 1, 3) );
+}
+
+double d4_logprior_cauchy(double u){
+
+    double u2;
+
+    u2 = R_pow_di(u, 2);
+
+    return( (12.0 - 72.0 * u2 + 12.0 * R_pow_di(u, 4)) / 
+	     R_pow_di(u2 + 1, 4) );
+}
+
 
 /*****************************************************************/
 /*           Normal distribution, identity link:                 */
@@ -2006,7 +2054,7 @@ double fun(int pp1,
 
 /* Dimensions:
    +++++++++++
-   beta[p + 1] (0, ... p-1 = regression coefficients; p = log(sigma) = w
+   beta[p + 1] (0, ... p-1 = regression coefficients; p = sigma
    x[p][n]
    y[n]
    fam_size[n_fam] { sum(fam_size) == n! }
@@ -2018,11 +2066,11 @@ double fun(int pp1,
     int start;
     double *gr = NULL;
     double post_mode;
-/*
+
     char trans = 'N';
     double alpha = 1.0;
     int one = 1;
-*/
+
     double tmp;
     int i, j;
 
@@ -2049,22 +2097,22 @@ double fun(int pp1,
     for (i = 0; i < ext->p + 1; i++) 
 	Rprintf("[fun] beta[%d] = %f\n", i, beta[i]);
 */
+/*
     for (i = 0; i < ext->n; i++){
 	tmp = ext->offset[i]; 
 	for (j = 0; j < ext->p; j++){
-	    tmp += beta[j] * ext->x[j][i]; /* check this! */
+	    tmp += beta[j] * ext->x[j][i];
 	}
 	ext->x_beta[i] = tmp;
     }
-
-/*
-    F77_CALL(dgemm)(&trans, &trans, &(ex->n), 
-    &p, &one, &alpha, x, &n, beta, &p,
-		    &alpha, x_beta, &p);
-
-    w = beta[ext->p];
-    sigma = exp(w);
 */
+
+    F77_CALL(dcopy)(&(ext->n), ext->offset, &one, ext->x_beta, &one);
+    F77_CALL(dgemv)(&trans, &(ext->n), &(ext->p), 
+    &alpha, ext->x[0], &(ext->n), beta, &one,
+		    &alpha, ext->x_beta, &one);
+
+
     start = 0;
     for (i = 0; i < ext->n_fam; i++){
 	fam->n = ext->fam_size[i];
@@ -2113,6 +2161,11 @@ void fun1(int pp1,
 
     int level = 1;
 
+    char trans = 'N';
+    double alpha = 1.0;
+    int one = 1;
+
+
 /* Note that we here trust 'ext->x_beta' to be properly updated !! */
 /* In 'fun' */
  
@@ -2131,6 +2184,7 @@ void fun1(int pp1,
 	gr[k] = 0.0;
     }
 
+/*
     for (i = 0; i < ext->n; i++){
 	tmp = ext->offset[i]; 
 	for (j = 0; j < ext->p; j++){
@@ -2138,7 +2192,14 @@ void fun1(int pp1,
 	}
 	ext->x_beta[i] = tmp;
     }
-    
+*/
+
+    F77_CALL(dcopy)(&(ext->n), ext->offset, &one, ext->x_beta, &one);
+    F77_CALL(dgemv)(&trans, &(ext->n), &(ext->p), 
+    &alpha, ext->x[0], &(ext->n), beta, &one,
+		    &alpha, ext->x_beta, &one);
+
+  
     start = 0;
 
     for (i = 0; i < ext->n_fam; i++){
@@ -2192,6 +2253,10 @@ void fun2(int pp1,
 
     int level = 2;
 
+    char trans = 'N';
+    double alpha = 1.0;
+    int one = 1;
+
     ext = ex;
 
     fam = Calloc(1, Family);
@@ -2210,14 +2275,20 @@ void fun2(int pp1,
     for (i = 0; i < pp1 * pp1; i++){
 	hessian[i] = 0.0;
     }
-
+/*
     for (i = 0; i < ext->n; i++){
 	tmp = ext->offset[i]; 
 	for (j = 0; j < ext->p; j++){
-	    tmp += beta[j] * ext->x[j][i]; /* check this! */
+	    tmp += beta[j] * ext->x[j][i];
 	}
 	ext->x_beta[i] = tmp;
     }
+*/
+    F77_CALL(dcopy)(&(ext->n), ext->offset, &one, ext->x_beta, &one);
+    F77_CALL(dgemv)(&trans, &(ext->n), &(ext->p), 
+    &alpha, ext->x[0], &(ext->n), beta, &one,
+		    &alpha, ext->x_beta, &one);
+
     
     start = 0;
     for (i = 0; i < ext->n_fam; i++){

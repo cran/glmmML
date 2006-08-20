@@ -1,3 +1,4 @@
+\encoding{UTF-8}
 \name{ghq}
 \alias{ghq}
 %- Also NEED an '\alias' for EACH other topic documented here.
@@ -20,30 +21,15 @@ ghq(n.points = 1, modified = TRUE)
  A list vith components
   \item{zeros}{The zeros (abscissas).}
   \item{weights}{The weights}
-  ...
 }
 \references{Gauss-hermite}
 \author{Jianming Jin, Univ. of Illinois, Urbana-Campaign}
 \note{
 The code is modified to suit the purpose of glmmML, with the permission
-of progessor Jin.}
-\seealso{ ~~objects to See Also as \code{\link{help}}, ~~~ }
+of professor Jin.}
+\seealso{\code{\link{glmmML}}}
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function(n.points = 1, modified = TRUE){
-    weights <- numeric(n.points)
-    zeros <- numeric(n.points)
-    res <- .Fortran("ghq",
-                    as.integer(n.points),
-                    zeros = as.double(zeros),
-                    weights = as.double(weights),
-                    PACKAGE = "glmmML")
-    list(weights = weights, zeros = zeros)
-  }
+ghq(15, FALSE)
 }
 \keyword{math}% at least one, from doc/KEYWORDS
 

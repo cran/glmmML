@@ -126,4 +126,14 @@ double d3_logprior_logistic(double u);
 
 double d4_logprior_logistic(double u);
 
+double logprior_cauchy(double u);
+
+double d_logprior_cauchy(double u);
+
+double d2_logprior_cauchy(double u);
+
+double d3_logprior_cauchy(double u);
+
+double d4_logprior_cauchy(double u);
+
 #endif

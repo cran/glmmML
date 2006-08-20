@@ -20,10 +20,9 @@ print.glmmML <- function(x,
     cat("\n")
     prmatrix(tmp)
     
-    if(x$mixed){
         cat("\nStandard deviation in mixing distribution: ", x$sigma,  "\n")
         cat("Std. Error:                                ", x$sigma.sd, "\n")
-    }
+
     if(x$boot){
         cat("\n Bootstrap p-value for H_0: sigma = 0: ",
         x$bootP, "(", x$boot, ")\n")

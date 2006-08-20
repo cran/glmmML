@@ -1,3 +1,4 @@
+\encoding{UTF-8}
 \name{summary.glmmML}
 \alias{summary.glmmML}
 %- Also NEED an '\alias' for EACH other topic documented here.
@@ -13,27 +14,20 @@ summary.glmmML(object, ...)
   \item{object}{A glmmML object}
   \item{\dots}{Additional arguments}
 }
-\details{
-  A summary method will be written soon.
-}
+%\details{
+%  A summary method will be written soon.
+%}
 \value{
 Nothing is returned.
 }
-\references{See }
-\author{Göran Broström}
+%\references{See }
+\author{\enc{GÃ¶ran BrostrÃ¶m}{George Bridgewater}}
 \note{Preliminary}
 
  
 \seealso{\code{\link{print.glmmML}}}
-\examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function(object, ...){
-    print.glmmML(object, ...)
-  }
-}
+%\examples{
+%
+%}
 \keyword{print}% at least one, from doc/KEYWORDS
 

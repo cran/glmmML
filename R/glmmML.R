@@ -6,7 +6,7 @@ glmmML <- function(formula,
                    subset,
                    na.action,
                    offset,
-                   prior = c("gaussian", "logistic"),
+                   prior = c("gaussian", "logistic", "cauchy"),
                    start.coef = NULL,
                    start.sigma = NULL,
                    fix.sigma = FALSE,
@@ -32,14 +32,18 @@ glmmML <- function(formula,
     ## Not used:
     
     method <- as.numeric(method[1] == "Laplace")
+    if (method) n.points <- 1
 
-    if (!prior[1] %in% c("gaussian", "logistic"))
+    a.prior <- prior[1]
+    if (!(a.prior %in% c("gaussian", "logistic", "cauchy")))
       stop("Prior distribution not known")
 
-    prior <- as.numeric(prior[1] == "logistic")
+    if (a.prior == "gaussian") prior <- 0
+    else if (a.prior == "logistic") prior <- 1
+    else prior <- 2
+    
     ## 'gaussian' is the default
     
-    ##if (!method) stop("Use default method (the only available at present)")
     cl <- match.call()
 
     if (is.character(family)) 
@@ -104,7 +108,6 @@ glmmML <- function(formula,
     
     if (missing(weights)) weights <- rep.int(1, NROW(Y))
     if (any(weights < 0)) stop("negative weights not allowed")
-    mixed <- TRUE # Not used any more, here for compatility.
 
     if (n.points <= 0) n.points <- 1 # Should give 'Laplace'(?)
     fit <- glmmML.fit(X, Y,
@@ -112,13 +115,11 @@ glmmML <- function(formula,
                       start.coef,
                       start.sigma,
                       fix.sigma,
-                      mixed,
                       cluster,
                       offset,
                       family,
                       n.points,
                       control,
-                      method,
                       intercept = ( attr(mt, "intercept") > 0),
                       boot,
                       prior # gaussian by default
@@ -151,16 +152,13 @@ glmmML <- function(formula,
     
     res$bootP <- fit$bootP
     res$deviance <- fit$deviance
-    res$mixed <- TRUE
     res$df.residual <- fit$df.residual
     res$cluster.null.deviance <- fit$cluster.null.deviance
     res$cluster.null.df <- fit$cluster.null.df
-    if (mixed){
-        res$posterior.modes <- fit$post.mode
-        res$posterior.means <- fit$post.mean
-    }
-    res$prior <- if (prior) "logistic" else "gaussian"
-    res$terms = mt
+    res$posterior.modes <- fit$post.mode
+##    res$posterior.means <- fit$post.mean
+    res$prior <- a.prior
+    res$terms <- mt
     res$info <- fit$info # From inverting the hessian! Should be zero.
     res$call <- cl
     names(res$coefficients) <- c(colnames(X))
