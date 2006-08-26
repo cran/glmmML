@@ -138,6 +138,8 @@ void glmm_boot0(int *family,
 
     *loglik = -Fmin;
 
+    if (*trace) Rprintf("loglik = %f\n", *loglik);
+
     for (i = 0; i < ext->n_fam; i++)
 	frail[i] = ext->gamma[i];
 

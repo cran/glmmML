@@ -23,16 +23,19 @@ extern d4_logpr *d4_logprior;
 /*         Bernoulli distribution, logit link:             */
 
 double P_logit(double x, double yw, double weight){ /* logit link */
+
+/* Note: Changed to return log(p) !! (2006-08-21) */
+
     double res, p;
 
     res = x * yw - weight * log1p(exp(x));
-/*
+
     if ((yw > 0.001) & (weight - yw) > 0.001){ 
 	p = yw / weight;
 	res = res - (yw * log(p) + (weight - yw) * log(1.0 - p));
     }
-*/
-    return ( exp(res)) ;
+
+    return ( res );
 }
 
 double G_logit(double x, double yw, double weight){
@@ -91,12 +94,22 @@ double K_logit(double x, double yw, double weight){
 
     double P_cloglog(double x, double yw, double weight){
 
-    double s, q;
+/* Note: Changed to return log(p) !! (2006-08-21) */
+
+    double s, q, p, res;
 
     s = exp(x);
     q = exp(-s);
-    
-    return( exp( yw * log(1.0 - q) - (weight - yw) * s ) );
+
+    res = yw * log(1.0 - q) - (weight - yw) * s;
+
+    if ((yw > 0.001) & (weight - yw) > 0.001){ 
+	p = yw / weight;
+	res = res - (yw * log(p) + (weight - yw) * log(1.0 - p));
+    }
+
+
+    return( res );
 }
 
 double G_cloglog(double x, double yw, double weight){
@@ -158,7 +171,12 @@ double K_cloglog(double x, double yw, double weight){
 
 double P_poisson(double x, double yw, double weight){
 
-    return ( exp(weight * (x * yw - exp(x))) );
+    double res;
+
+    res = weight * (x * yw - exp(x));
+    if (yw > 0.001) res -= weight * yw * (log(yw) - 1.0);
+ 
+    return ( res );
 }
 
 double G_poisson(double x, double yw, double weight){
@@ -349,9 +367,10 @@ static double g(double u, void *ex){
     sigu = fam->sigma * u; 
     res = 0.0;
     for (j = 0; j < fam->n; j++){
-	res += log(P(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j])); 
+	res += P(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
     }
 
+    /* Rprintf("[g:] res = %f\n", res); */
     return ( logprior(u) + res );
 }
 
@@ -897,8 +916,8 @@ static double fun_fam(int one, double *u, void *ex){
     usig = *u * fam->sigma;
     for (j = 0; j < fam->n; j++){
 /* This should be fixed via a parameter 'give_log' to P! */
- 	    res += log(P(fam->x_beta[j] + usig, 
-			 fam->yw[j], fam->weights[j]));
+	res += P(fam->x_beta[j] + usig, 
+		 fam->yw[j], fam->weights[j]);
     }
 
     return(-res);
@@ -963,8 +982,8 @@ static double fun1_fam(int one, double *u, void *ex){
 
     for (j = 0; j < fam->n; j++){
 /* This should be fixed via a parameter 'give_log' to P! */
-	res += log(P(fam->x_beta[j] + *u * fam->sigma, fam->yw[j],
-		   fam->weights[j]));
+	res += P(fam->x_beta[j] + *u * fam->sigma, fam->yw[j],
+		   fam->weights[j]);
 /*	    Rprintf("[fun_fam:] x_beta[%d] = %f\n", j, fam->x_beta[j]); */
     }
 
@@ -1003,8 +1022,8 @@ static void int_fun_mean(double *x,
 
     for (i = 0; i < n; i++){
 	for (j = 0; j < fam->n; j++){
- 	    res[i] *= P(fam->x_beta[j] + x[i] * fam->sigma,
-			fam->yw[j], fam->weights[j]);
+ 	    res[i] *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
+			fam->yw[j], fam->weights[j]));
 	}
 	/* x[i] = res[i]; Improve by 'memcpy' later */
     }
@@ -1040,8 +1059,8 @@ static void int_fun(double *x,
 
     for (i = 0; i < n; i++){
 	for (j = 0; j < fam->n; j++){
- 	    res[i] *= P(fam->x_beta[j] + x[i] * fam->sigma,
-			fam->yw[j], fam->weights[j]);
+ 	    res[i] *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
+			fam->yw[j], fam->weights[j]));
 	}
 	/* x[i] = res[i]; Improve by 'memcpy' later */
     }
@@ -1091,8 +1110,8 @@ static void int_fun1(double *x,
 	
     for (i = 0; i < n; i++){
 	for (j = 0; j < fam->n; j++){ 
-	    res[i] *= P(fam->x_beta[j] + x[i] * fam->sigma,
-			fam->yw[j], fam->weights[j]);
+	    res[i] *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
+			fam->yw[j], fam->weights[j]));
 	}
 	/* x[i] = res[i]; Improve by 'memcpy' later */
     }
@@ -1139,8 +1158,8 @@ static void int_fun1s(double *x,
 	
     for (i = 0; i < n; i++){
 	for (j = 0; j < fam->n; j++){ 
-	    res[i] *= P(fam->x_beta[j] + x[i] * fam->sigma,
-			fam->yw[j], fam->weights[j]);
+	    res[i] *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
+			fam->yw[j], fam->weights[j]));
 	}
 	/* x[i] = res[i]; Improve by 'memcpy' later */
     }
@@ -1222,8 +1241,8 @@ static void int_fun2(double *x,
     for (i = 0; i < n; i++){
 	tmp = 1.0;
 	for (j = 0; j < fam->n; j++){
-	    tmp *= P(fam->x_beta[j] + x[i] * fam->sigma,
-		     fam->yw[j], fam->weights[j]);
+	    tmp *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
+		     fam->yw[j], fam->weights[j]));
 	}
 	res[i] *= tmp * (g1sum[i] * g2sum[i] + hsum[i]);
 	/* x[i] = res[i];  Improve by 'memcpy' later */
@@ -1308,8 +1327,8 @@ static void int_fun2s(double *x,
     for (i = 0; i < n; i++){
 	tmp = 1.0;
 	for (j = 0; j < fam->n; j++){
-	    tmp *= P(fam->x_beta[j] + x[i] * fam->sigma,
-		     fam->yw[j], fam->weights[j]);
+	    tmp *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
+		     fam->yw[j], fam->weights[j]));
 	}
 	res[i] *= tmp * x[i] * /* fam->sigma *  NOTE!!!!! */
 	    (g1sum[i] * g2sum[i] + hsum[i]);
@@ -1378,8 +1397,8 @@ static void int_funss(double *x,
     for (i = 0; i < n; i++){
 	tmp = 1.0;
 	for (j = 0; j < fam->n; j++){
-	    tmp *= P(fam->x_beta[j] + x[i] * fam->sigma,
-		     fam->yw[j], fam->weights[j]);
+	    tmp *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
+		     fam->yw[j], fam->weights[j]));
 	}
 	res[i] *= x[i] *  tmp *          /* NOTE !!!!!!!!!!!! */
 	    (gsum[i] * (1.0 + x[i] * gsum[i]) +
@@ -1950,8 +1969,8 @@ static double frail_mean(int level,
     for (i = 0; i < n_points; i++){
 	tmp = 1.0;
 	for (j = 0; j < fam->n; j++){
-	    tmp *= P(fam->x_beta[j] + zeros[i] * sigma, 
-		     fam->yw[j], fam->weights[j]);
+	    tmp *= exp(P(fam->x_beta[j] + zeros[i] * sigma, 
+		     fam->yw[j], fam->weights[j]));
 	}
 	h += tmp * wc[i];
 	h_mean += tmp * wc[i] * zeros[i];

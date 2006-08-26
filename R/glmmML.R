@@ -19,7 +19,7 @@ glmmML <- function(formula,
     if (is.list(control)) {
         if (is.null(control$epsilon))
           control$epsilon <- 1e-08
-        if (is.null(control$maxiter))
+        if (is.null(control$maxit))
           control$maxit <- 200
         if (is.null(control$trace))
           control$trace <- FALSE

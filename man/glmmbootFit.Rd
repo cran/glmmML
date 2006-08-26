@@ -56,13 +56,13 @@ A profiling approach is used to estimate the cluster effects.
 }
 \seealso{\code{\link{glmmboot}}}
 \examples{
-## Don't run
+## Not run
 x <- matrix(rnorm(1000), ncol = 1)
 id <- rep(1:100, rep(10, 100))
 y <- rbinom(1000, size = 1, prob = 0.4)
 fit <- glmmbootFit(x, y, cluster = id, boot = 2000)
 summary(fit)
-## End Don't run
+## End(Not run)
 ## Should show no effects.
 }
 \keyword{regression}% at least one, from doc/KEYWORDS

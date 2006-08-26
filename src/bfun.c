@@ -73,7 +73,7 @@ static double get_gam(int n, /* family size */
 	tal = ytot;
 	nam = 0.0;
 	for (i = 0; i < n; i++){
-	    p[i] = P(lin[i] + gam, 1.0, 1.0); /* Change !!!!!! */
+	    p[i] = exp(P(lin[i] + gam, 1.0, 1.0)); /* Change !!!!!! */
 	    tal -= p[i];
 	    nam += p[i] * (1.0 - p[i]);
 	}
@@ -264,8 +264,8 @@ double bfun(int p, double *b, void *ex){
 	    for (j = 0; j < ext->fam_size[i]; j++){
 		indx++;
        
-		loglik += log( P(lin[indx] + ext->gamma[i], 
-				 y[indx], ext->weights[indx]) );
+		loglik += P(lin[indx] + ext->gamma[i], 
+				 y[indx], ext->weights[indx]);
 	    }
 	}else{
 	    indx += ext->fam_size[i];
@@ -301,8 +301,8 @@ void bfun_gr(int n, double *b, double *gr, void *ex){
 	    if (ext->fam_out[i] == 0){
 		for (j = 0; j < ext->fam_size[i]; j++){
 		    indx++;
-		    ext->pred[indx] = P(ext->gamma[i] + lin[indx], 1.0, 
-					ext->weights[indx]); /* ????? */
+		    ext->pred[indx] = exp(P(ext->gamma[i] + lin[indx], 1.0, 
+					ext->weights[indx])); /* ????? */
 		}
 	    }else{
 		tmp = (double)(ext->fam_out[i] == 1);

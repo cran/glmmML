@@ -43,6 +43,9 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
         stop("for the binomial family, Y must be a vector of 0 and 1's\n",
              "or a 2 column matrix where col 1 is no. successes and col 2 is no. failures")
         ## End of 'from binomial'.
+    }else{
+        if (NCOL(Y) != 1)
+          stop("It is only the binomial family that allows two columns for Y")
     }
     coli <- match("(Intercept)", colnames(X))
     with.intercept <- !is.na(coli)

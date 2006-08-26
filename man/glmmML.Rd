@@ -52,12 +52,13 @@ Possible choices are "gaussian" (default), "logistic", and "cauchy".}
     samples you want to draw. A recomended absolute \emph{minimum value} is
     \code{boot = 2000}.}
 }
-\details{
-The integrals in the log likelihood function are evaluated by the
+\details{The integrals in the log likelihood function are evaluated by the
 Laplace approximation (default) or Gauss-Hermite quadrature. The latter
 is now fully adaptive; however, only approximate estimates of variances
 are available for the Gauss-Hermite (n.points > 1) method.
-}
+
+For the binomial families, the response can be a two-column matrix, see
+the help page for glm for details.}
 \value{
   The return value is a list, an object of class 'glmmML'. The components are:
   \item{boot}{No. of boot replicates}
@@ -95,7 +96,7 @@ start values for sigma. If still no convergence, consider the
 possibility to fix the value of sigma at several values and study the
 profile likelihood.}
 
-\seealso{\code{\link{glmmboot}}, \code{\link{optim}},
+\seealso{\code{\link{glmmboot}}, \code{\link{glm}}, \code{\link{optim}},
   \code{\link[repeated]{glmm}} in Lindsey's 
 \code{repeated} package, \code{\link[Matrix]{lmer}} in \code{Matrix}and
 \code{\link[MASS]{glmmPQL}} in \code{MASS}.} 

@@ -108,6 +108,8 @@ glmmboot <- function(formula,
     res$aic <- res$deviance + 2 * nvars ## CHECK this !!
     res$boot <- TRUE
     res$call <- cl
+    res$frail <- ifelse(res$frail > 999, Inf, res$frail)
+    res$frail <- ifelse(res$frail < -999, -Inf, res$frail)
     if (!is.null(res$coefficients))
       names(res$coefficients) <- c(colnames(X))[-1]
     class(res) <- "glmmboot"
