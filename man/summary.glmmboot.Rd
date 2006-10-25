@@ -7,7 +7,7 @@
 It simply calls \code{print.glmmboot}
 }
 \usage{
-summary.glmmboot(object, ...)
+\method{summary}{glmmboot}(object, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

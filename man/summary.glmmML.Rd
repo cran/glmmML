@@ -7,7 +7,7 @@
 It simply calls \code{print.glmmML}
 }
 \usage{
-summary.glmmML(object, ...)
+\method{summary}{glmmML}(object, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

@@ -6,7 +6,7 @@
 A glmmML object is the output of \code{glmmML}.
 }
 \usage{
-print.glmmML(x, digits = max(3, getOption("digits") - 3), na.print = "", ...)
+\method{print}{glmmML}(x, digits = max(3, getOption("digits") - 3), na.print = "", ...)
 }
 %- maybe also `usage' for other objects documented here.
 \arguments{

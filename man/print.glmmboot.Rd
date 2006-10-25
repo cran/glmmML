@@ -6,7 +6,7 @@
 A glmmboot object is the output of \code{glmmboot}.
 }
 \usage{
-print.glmmboot(x, digits = max(3, getOption("digits") - 3), na.print = "", ...)
+\method{print}{glmmboot}(x, digits = max(3, getOption("digits") - 3), na.print = "", ...)
 }
 %- maybe also `usage' for other objects documented here.
 \arguments{

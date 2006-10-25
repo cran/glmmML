@@ -145,7 +145,7 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
             res$sd <- sqrt(diag(res$variance))
         }else{
             res$variance <- NULL
-            res$sd <- NULL
+            res$sd <- rep(NA, p)
         }
         res$boot_rep <- boot
         
