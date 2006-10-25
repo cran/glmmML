@@ -216,15 +216,15 @@ void glmm_boot(int *family,
 */
     bfun_hess(*p, beta, hess_vec, ext);
 
-/*
+
     Rprintf("Hessian...\n\n");
     for (i = 0; i < *p; i++){
 	for (j = 0; j < *p; j++){
-	    Rprintf("%f  ", hessian[i * (*p)+ j]);
+	    Rprintf("%f  ", hessian[i][j]);
 	}
 	Rprintf("\n");
     }
-*/
+
 
     F77_CALL(dpoco)(*hessian, &bdim, &bdim, &rcond, work, info);
     if (*info == 0){
@@ -234,10 +234,11 @@ void glmm_boot(int *family,
 		hessian[k][m] = hessian[m][k];
 	    }
 	}
+	for (m = 0; m < bdim * bdim; m++) variance[m] = hess_vec[m];
 	
     }else{
-	Rprintf("info = %d\n", *info);
-	warning("Hessian non-positive definite. No variance!");
+	Rprintf("info[dpoco] = %d\n", *info);
+	warning("[glmmboot:] Information non-positive definite. No variance!");
     }
 
     upper = 0;

@@ -353,6 +353,7 @@ void bfun_gr(int n, double *b, double *gr, void *ex){
 void bfun_hess(int p, double *b, double *hessian, Extb *ext){
 
     int m, s, i, j, indx;
+
     
     double *h, *h_fam;
     double **hess;
@@ -413,7 +414,9 @@ void bfun_hess(int p, double *b, double *hessian, Extb *ext){
     }
     
     for (m = 0; m < p; m++){
-	for (s = m + 1; s < p; s++){
+	hess[m][m] = -hess[m][m];     /* Added 0.65-4 */
+	for (s = m + 1; s < p; s++){             /* (an old error!) */
+	    hess[s][m] = -hess[s][m]; /* Added 0.65-4 */
 	    hess[m][s] = hess[s][m];
 	}
     }

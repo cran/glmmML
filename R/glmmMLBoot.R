@@ -140,7 +140,8 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
                     bootP = fit$bootP,
                     info = fit$info)
         if (!fit$info){
-            res$variance <- matrix(-fit$variance, nrow = p, ncol = p)
+            res$variance <- matrix(fit$variance, nrow = p, ncol = p)
+            ## Removed minus sign above, 0.65-4
             res$sd <- sqrt(diag(res$variance))
         }else{
             res$variance <- NULL

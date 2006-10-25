@@ -1,7 +1,11 @@
-* Fix glmmboot, especially take care of "singular hessian" in the C code.
-
 * Add extractAIC methods.
 
 * Make deviances comparable to glm's.
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Fixed items:
 
-* Include alternative 'priors' (not only the normal...).
+* Include alternative 'priors' (not only the normal...). DONE.
+
+* Fix glmmboot, especially take care of "singular hessian" in the C code.
+  DONE.
+
