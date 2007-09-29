@@ -25,13 +25,5 @@ double get3_gam(int n,
 */
 void bfun_hess(int p, double *b, double *hessian, Extb *ext);
 
-typedef struct
-{
-    double *yw;
-    double *weights;
-    int n;
-    double *lin;
-}
-Ext_gam;
 
 #endif

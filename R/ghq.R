@@ -5,6 +5,7 @@ ghq <- function(n.points = 1, modified = TRUE){
                     as.integer(n.points),
                     zeros = as.double(zeros),
                     weights = as.double(weights),
+                    as.logical(modified),
                     PACKAGE = "glmmML")
     list(weights = res$weights, zeros = res$zeros)
 }

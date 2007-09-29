@@ -40,6 +40,7 @@ void glmm_ml(int *family,
 	     double *start_beta,
 	     int *cluster,
 	     double *weights,
+	     double *cluster_weights,
 	     double *start_sigma,
 	     int *fix_sigma,
 	     double *x, /* Now p x (\sum_1_{n_fam} fam_size[i]) */
@@ -101,6 +102,8 @@ void glmm_ml(int *family,
 
 /* New in 0.28; bootstrapping: */
     int upp;
+
+    int modified = 1;
 
     int *conditional;
     int condi = 1;
@@ -206,6 +209,7 @@ void glmm_ml(int *family,
     }
     /* error("Enough!!!"); */
     ext->weights = weights;
+    ext->cluster_weights = cluster_weights;
     ext->n_fam = *n_fam;
     ext->fam_size = fam_size;
     ext->post_mode = Calloc(*n_fam, double); 
@@ -213,7 +217,7 @@ void glmm_ml(int *family,
     ext->n_points = *n_points;
     ext->wc = Calloc(*n_points, double);
     ext->zeros = Calloc(*n_points, double);
-    F77_CALL(ghq)(n_points, ext->zeros, ext->wc);  
+    F77_CALL(ghq)(n_points, ext->zeros, ext->wc, &modified);  
 
 /******* Done with 'ext' ***************/
 

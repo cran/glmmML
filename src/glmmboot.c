@@ -62,11 +62,11 @@ void glmm_boot(int *family,
     int *mask;
 #endif
     Extb *ext;
+    Cluster *clust;
     int i;
     int j;
-
-    int *ki;
-    int *ki_tmp;
+    int cl;
+    int indx;
 
     double Fmin;
     double *b;
@@ -83,12 +83,18 @@ void glmm_boot(int *family,
     double *work;
     double rcond;
     int job = 11;
+    int ant_fam_out;
+
+    double tmp;
+
+    int rep;
 
     bdim = *p;
     lwork = 11 * (*p);
     work = Calloc(lwork, double);
     det = Calloc(2, double);
 
+    gr = Calloc(bdim, double);
     hessian = Calloc(bdim, double *);
     hess_vec = Calloc(bdim * bdim, double);
     for (j = 0; j < bdim; j++) hessian[j] = hess_vec + j * bdim;
@@ -117,6 +123,7 @@ void glmm_boot(int *family,
     reltol = abstol;
 
     ext = Calloc(1, Extb);
+    clust = Calloc(*n_fam, Cluster);
 /************************ Fill in ext: *****************/
     ext->family = *family; /* == 0 for binomial(logit) */
 
@@ -125,42 +132,59 @@ void glmm_boot(int *family,
 	ext->n += fam_size[i];
     }
     ext->p = *p;
-    ext->fam_size = fam_size;
-    ext->n_fam = *n_fam;
-    ext->success = Calloc(*n_fam, int);
-    ext->fam_out = Calloc(ext->n_fam, int);
+    ext->n_clust = *n_fam;
 
-    ext->x = Calloc(ext->n, double *);
-    for (i = 0; i < ext->n; i++){
-	ext->x[i] = x + i * (ext->p);
-    }
-    /*** Note that ext->x is not "filled"; ***/ 
-    /*** only points to the right place    ***/
+    ext->clust = clust;
 
-    ext->x_beta = Calloc(ext->n, double);
-    ext->pred = Calloc(ext->n, double);
-    ext->offset = Calloc(ext->n, double);
-    for (i = 0; i < ext->n; i++){
-	ext->offset[i] = offset[i];
+    indx = 0;
+    for (cl = 0; cl < ext->n_clust; cl++){
+	clust[cl].n = fam_size[cl];
+	clust[cl].p = ext->p;
+	clust[cl].yw = Calloc(clust[cl].n, double);
+	clust[cl].lin = Calloc(clust[cl].n, double);
+	clust[cl].weight = weights + indx;
+	clust[cl].offset = offset + indx;
+	clust[cl].x = Calloc(clust[cl].n, double *); /* KOLLA!!! */
+	for (i = 0; i < clust[cl].n; i++){
+	    clust[cl].x[i] = x + indx * (ext->p);
+	    clust[cl].yw[i] = weights[indx] * y[indx];
+	    indx++;
+	}
     }
+    for (cl = 0; cl < ext->n_clust; cl++){ 
+	clust[cl].ytot = 0.0;
+	clust[cl].wtot = 0.0;
+	for (i = 0; i < clust[cl].n; i++){
+	    clust[cl].wtot += clust[cl].weight[i];
+	    clust[cl].ytot += clust[cl].yw[i];
+	}
+    }
+
+    ant_fam_out = 0;
     
-    ext->ki = Calloc(ext->n, int);
-    ext->cluster = Calloc(ext->n, int);
-    for (i = 0; i < ext->n; i++)
-	ext->cluster[i] = cluster[i];
-    ext->gamma = Calloc(ext->n_fam, double);
-    ext->gr = Calloc(ext->p, double);
-    ext->hessian = Calloc(ext->p * ext->p, double);
-    ext->yw = Calloc(ext->n, double);
-    for (i = 0; i < ext->n; i++) 
-	ext->yw[i] = y[i] * weights[i];
-    ext->weights = weights;
+    for (i = 0; i < ext->n_clust; i++){
+	if (abs(clust[i].ytot) < 0.001){
+	    clust[i].out = -1;
+	    clust[i].gamma = -1000.0; /* -inf */
+	}else if (abs(clust[i].wtot - clust[i].ytot) < 0.001 & 
+		  (ext->family <= 1)){
+	    clust[i].out = 1;
+	    clust[i].gamma = 1000.0; /* +inf */
+	}else{
+	    ant_fam_out++;
+	    clust[i].out = 0;
+	}
+    }
 /**************** Filled in ext  *************************/
+
+    if (!ant_fam_out) 
+	error("All clusters are 'trivial' (all zeros or all ones)");
+
     mask = Calloc(ext->p, int);    
 
     b = Calloc(ext->p, double);
 
-    gr = ext->gr;
+
 
     for (i = 0; i < *p; i++){
 	b[i] = start_beta[i];
@@ -168,13 +192,6 @@ void glmm_boot(int *family,
 
     for (i = 0; i < ext->p; i++){
         mask[i] = 1;
-    }
-
-    ki = ext->ki;
-    ki_tmp = Calloc(ext->n, int);
-
-    for (i = 0; i < ext->n; i++){
-	ki[i] = i;
     }
 
 /* Note that this searches for a minimum: (!!) */
@@ -191,7 +208,7 @@ void glmm_boot(int *family,
 	Rprintf("Max log likelihood after vmmin: %f\n", -Fmin);
 	printf("Gradients: ");
 	for (i = 0; i < *p; i++){
-	    Rprintf(" %f, ", -ext->gr[i]);
+	    Rprintf(" %f, ", gr[i]);
 	}
 	Rprintf("\n");
     }
@@ -200,8 +217,8 @@ void glmm_boot(int *family,
     for (i = 0; i < *p; i++){
 	beta[i] = b[i];
     }
-    for (i = 0; i < ext->n_fam; i++){
-	frail[i] = ext->gamma[i];
+    for (i = 0; i < ext->n_clust; i++){
+	frail[i] = clust[i].gamma;
     }
 
 /* Done in calling R function.... 
@@ -214,17 +231,19 @@ void glmm_boot(int *family,
 	    predicted[j] = exp(ext->x_beta[j]);
     }
 */
+    hess_vec[0] = 0.0;
+
     bfun_hess(*p, beta, hess_vec, ext);
 
-
-    Rprintf("Hessian...\n\n");
-    for (i = 0; i < *p; i++){
-	for (j = 0; j < *p; j++){
-	    Rprintf("%f  ", hessian[i][j]);
+    if (*trace){
+	Rprintf("Hessian...\n\n");
+	for (i = 0; i < *p; i++){
+	    for (j = 0; j < *p; j++){
+		Rprintf("%f  ", hessian[i][j]);
+	    }
+	    Rprintf("\n");
 	}
-	Rprintf("\n");
     }
-
 
     F77_CALL(dpoco)(*hessian, &bdim, &bdim, &rcond, work, info);
     if (*info == 0){
@@ -245,31 +264,77 @@ void glmm_boot(int *family,
 
 /************** Bootstrapping starts *****************************/
  
-    for (i = 0; i < *boot; i++){
+    
+    for (rep = 0; rep < *boot; rep++){
 	if (*trace){
-	    if ((i / 10) * 10 == i)
+	    if ((rep / 10) * 10 == rep)
 		printf("********************* Replicate No. No. %d\n", i);
 	}
 	if (*family <= 1){ /* Bernoulli */
-	    for (j = 0; j < ext->n; j++)
-		ext->yw[j] = rbinom((int)weights[j], predicted[j]);
+	    indx = -1;
+	    for (i = 0; i < ext->n_clust; i++){
+		for (j = 0; j < clust[i].n; j++){
+		    indx++;
+		    clust[i].yw[j] = 
+			rbinom((int)weights[indx], predicted[indx]);
+		}
+	    }
 	}else{
-	    for (j = 0; j < ext->n; j++) /* Poisson */
-		ext->yw[j] = rpois(weights[j] * predicted[j]);
+	    indx = -1;
+	    for (i = 0; i < ext->n_clust; i++){
+		for (j = 0; j < clust[i].n; j++) /* Poisson */
+		    indx++;
+		    clust[i].yw[j] = rpois(weights[j] * predicted[j]);
+	    }
 	}
 
+	indx = 0;
+	ant_fam_out = 0;
+	for (i = 0; i < ext->n_clust; i++){
+	    clust[i].ytot = 0.0;
+	    for (j = 0; j < clust[i].n; j++){
+		clust[i].ytot += clust[i].yw[j];
+	    }
+	    if (abs(clust[i].ytot) < 0.001){
+		clust[i].out = -1;
+		clust[i].gamma = -1000.0; /* -inf */
+	    }else if (abs(clust[i].wtot - clust[i].ytot) < 0.001 & 
+		      (ext->family <= 1)){
+		clust[i].out = 1;
+		clust[i].gamma = 1000.0; /* +inf */
+	    }else{
+		ant_fam_out++;
+		clust[i].out = 0;
+	    }
+	}
+
+	if (!ant_fam_out){
+	    /* Rprintf("Only trivial CLUSTERS!!!\n"); */
+	    boot_log[i] = 0.0;
+	    if (0.0 >= *loglik) upper++;
+	}else{
+
+
 /* Restore beta as start values: */
-	for ( j = 0; j < *p; j++) b[j] = beta[j];
+/*	    for ( j = 0; j < *p; j++) b[j] = beta[j]; */
+
+	    for ( j = 0; j < *p; j++) b[j] = 0.0;
 	
-	vmax = vmaxget();
-	vmmin(*p, b, &Fmin,
-	      bfun, bfun_gr, *maxit, *trace,
-	      mask, abstol, reltol, nREPORT,
-	      ext, &fncount, &grcount, &fail);
-	vmaxset(vmax);
-	*convergence = (fail == 0);
-	boot_log[i] = -Fmin;
-	if (-Fmin >= *loglik) upper++;
+	    if ( R_FINITE( tmp = bfun(*p, b, ext) ) ){
+		vmax = vmaxget();
+		vmmin(*p, b, &Fmin,
+		      bfun, bfun_gr, *maxit, *trace,
+		      mask, abstol, reltol, nREPORT,
+		      ext, &fncount, &grcount, &fail);
+		vmaxset(vmax);
+		*convergence = (fail == 0);
+		boot_log[i] = -Fmin;
+		if (-Fmin >= *loglik) upper++;
+	    }else{
+		warning("Infinite start value to vmmin");
+		Rprintf("\n");
+	    }
+	}	    
     }
 
     if (*boot) *boot_p = (double)upper / (double)*boot;
@@ -279,29 +344,20 @@ void glmm_boot(int *family,
 
 /*    vmaxset(vmax1); */
 
-
+    Free(gr);
     Free(hessian);
     Free(hess_vec);
     Free(det);
     Free(work);
 
-    Free(ext->yw);
-    Free(ext->hessian);
-    Free(ext->gr);
-    Free(ext->gamma);
-    Free(ext->cluster);
-    Free(ext->fam_out);
-    Free(ext->ki);
-    Free(ext->offset);
-    Free(ext->x_beta);
-    Free(ext->pred);
-    Free(ext->x);
-    Free(ext->success);
+    for (i = 0; i < ext->n_clust; i++){
+	Free(clust[i].yw);
+	Free(clust[i].x);
+	Free(clust[i].lin);
+    }
 
     Free(ext);
 
     Free(mask);
-    Free(ki_tmp);
     Free(b);
-
 }

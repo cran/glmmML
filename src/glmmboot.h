@@ -11,29 +11,32 @@
 
 typedef struct
 {
+    int out; /* == 0: is counted in the analysis */
+    int n;
+    int p;
+    double *weight;
+    double wtot;
+    double *offset;
+    double **x;
+    double *yw;
+    double ytot;
+    double *lin; /* = x_beta */
+    double gamma; /* depends on beta */
+}
+Cluster;
+
+typedef struct
+{
+    /* Fixed data: */
     int family;
     int n;               /* = sum _0^(n_fam - 1) fam_size[i] */
     int p;               /* No. of covariates _excluding_    */ 
                          /* a constant                       */
-    int *fam_size;       /* n_fam-vector.                    */
-    int n_fam;           /* No. of families.                 */
-    int *success;        /* n_fam-vector: Family totals      */
-    double **x;          /* n x p 'matrix'                   */
-    double *x_beta;      /* n: linear predictor              */
-    double *pred;        /* n: logit(x_beta + gamma)         */           
-    double *offset;      /* n                                */
-    int *ki;             /* n                                */
-    int *cluster;        /* n                                */
-    int *fam_out;        /* n_fam: 0 == include,             */ 
-			 /*       -1 all failures,           */
-			 /*       +1 all successes           */
-    double *gamma;       /* n_fam                            */
-    double *gr;          /* bdim                             */
-    double *hessian;     /* p x p                            */
-    double *yw;          /* n-vector: response.              */
-    double *weights;     /* n-vector.                        */
+    int n_clust;         /* No. of clusters.                 */
+    Cluster *clust;
 }
 Extb;
+
 
 void glmm_boot(int *family,
 	       int *p, 

@@ -3,6 +3,7 @@ glmmML <- function(formula,
                    data,
                    cluster,
                    weights,
+                   cluster.weights,
                    subset,
                    na.action,
                    offset,
@@ -62,8 +63,10 @@ glmmML <- function(formula,
     ## get a copy of the call; result: a list.
     
     mf$family <- mf$start.coef <- mf$start.sigma <- mf$fix.sigma <- NULL
-    mf$weights <- mf$control <- mf$maxit <- mf$boot <- NULL
+    mf$weights <- mf$cluster.weights <- NULL
+    mf$control <- mf$maxit <- mf$boot <- NULL
     mf$n.points <- mf$method <- mf$prior <- NULL
+
     mf[[1]] <- as.name("model.frame") # turn into a call to model.frame
     mf <- eval(mf, environment(formula)) # run model.frame
     
@@ -109,9 +112,14 @@ glmmML <- function(formula,
     if (missing(weights)) weights <- rep.int(1, NROW(Y))
     if (any(weights < 0)) stop("negative weights not allowed")
 
+    if (missing(cluster.weights))
+      cluster.weights <- rep.int(1, length(cluster))
+    if (any(cluster.weights < 0)) stop("negative cluster weights not allowed")
+
     if (n.points <= 0) n.points <- 1 # Should give 'Laplace'(?)
     fit <- glmmML.fit(X, Y,
                       weights,
+                      cluster.weights,
                       start.coef,
                       start.sigma,
                       fix.sigma,

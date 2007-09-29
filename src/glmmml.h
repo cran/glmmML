@@ -27,6 +27,7 @@ typedef struct
     /* double *hessian;     (p+1) x (p+1)                    */
     double *yw;          /* n-vector:  response * weights.   */
     double *weights;     /* n-vector:                        */
+    double *cluster_weights;  /* n_fam-vector:                        */
     int n_fam;           /* No. of families.                 */
     int *fam_size;       /* n_fam-vector.                    */
     double *post_mode;   /* n_fam-vector.                    */
@@ -45,6 +46,7 @@ typedef struct
     double *x_beta;
     double *yw;
     double *weights;
+    double cluster_weight;
     double **x;
     int p; /* == "Exts->p" */ 
     int m;     /* The actual partial derivative , m = 0, ..., (p - 1)  */
@@ -58,6 +60,7 @@ void glmm_ml(int *family,
              double *start_beta,
 	     int *cluster,
 	     double *weights,
+	     double *cluster_weights,
              double *start_sigma,
 	     int *fix_sigma,
              double *x, /* Now p x (\sum_1_{n_fam} fam_size[i]) */

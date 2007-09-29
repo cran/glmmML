@@ -1,10 +1,10 @@
+Encoding: UTF-8
 Package: glmmML
-Version: 0.65-5
-Date: 2006/10/25
+Version: 0.71-3
+Date: 2007/09/29
 Title: Generalized linear models with clustering
-Description: A Maximum Likelihood and bootstrap approach to mixed models.
-License: GPL version 2 or newer.
+Description: A Maximum Likelihood and bootstrap approach to mixed models
+License: GPL (>=3)
 Author: Göran Broström
 Maintainer: Göran Broström <gb@stat.umu.se>
-Depends: R (>= 2.3.0)
-Packaged: Wed Oct 25 22:11:14 2006; gb
+Packaged: Sat Sep 29 23:42:37 2007; gb

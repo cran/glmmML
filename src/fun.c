@@ -100,26 +100,32 @@ double K_logit(double x, double yw, double weight){
 
     s = exp(x);
     q = exp(-s);
+    
+    res = yw * log1p(-q) - (weight - yw) * s;
 
-    res = yw * log(1.0 - q) - (weight - yw) * s;
-
-    if ((yw > 0.001) & (weight - yw) > 0.001){ 
+    if ((yw > 0.001) & (weight - yw) > 0.001){
+	Rprintf("yw = %f, weight = %f\n", yw, weight);
 	p = yw / weight;
 	res = res - (yw * log(p) + (weight - yw) * log(1.0 - p));
     }
-
 
     return( res );
 }
 
 double G_cloglog(double x, double yw, double weight){
 
-    double q, s;
+    double q, s, res;
 
     s = exp(x);
-    q = exp(-s);
+/*    q = exp(-s); */
 
-    return ( s * (yw / (1.0 - q) - weight) );
+/*    return ( s * (yw / (1.0 - q) - weight) ); */
+/*    return( s * (yw / (1.0 - exp(-s)) - weight) ); */
+    res = -s * (yw / expm1(-s) + weight);
+
+    return(res);
+
+ 
 }
 
 double H_cloglog(double x, double yw, double weight){
@@ -129,8 +135,10 @@ double H_cloglog(double x, double yw, double weight){
     s = exp(x);
     q = exp(-s);
 
+/*    return ( G_cloglog(x, yw, weight) - 
+      yw * R_pow_di(s, 2) * q / R_pow_di(1.0 - q, 2) ); */
     return ( G_cloglog(x, yw, weight) - 
-	     yw * R_pow_di(s, 2) * q / R_pow_di(1.0 - q, 2) ); 
+	     yw * R_pow_di(s, 2) * q / R_pow_di(expm1(-s), 2) ); 
 }
 
 double I_cloglog(double x, double yw, double weight){
@@ -202,9 +210,9 @@ double K_poisson(double x, double yw, double weight){
     return ( -weight * exp(x) );
 }
 
-/* Prior distribution aand it's derivatives:            */
-/* no scale; transformed away! (May be reconsidered...  */
-/* Normal and logistic for the moment                                */
+/* Prior distribution and it's derivatives:            */
+/* no scale; transformed away! (May be reconsidered... */
+/* Normal, Logistic, and Cauchy for the moment...      */
 
 double logprior_normal(double u){
 
@@ -1595,7 +1603,9 @@ static void update(int level,
 	}
 	/* M_LN2 = log(2) */
 
-	*loglik += 0.5 * M_LN2 + log(sigma_hat) + log(h);
+	*loglik += 
+	    fam->cluster_weight * 
+	    (0.5 * M_LN2 + log(sigma_hat) + log(h));
 
 /*  OLD way:
 	h = 0.0;
@@ -1616,7 +1626,9 @@ static void update(int level,
 	*/
 
     }else{ /* Laplace */
-	 *loglik += g(u_hat, ex) + M_LN_SQRT_2PI + log(sigma_hat);
+	 *loglik += 
+	     fam->cluster_weight * 
+	     (g(u_hat, ex) + M_LN_SQRT_2PI + log(sigma_hat));
     }
 
     if (level == 0) {
@@ -1717,14 +1729,18 @@ static void update(int level,
     /* Add into first derivatives: KOLLA HÄR!??!!*/
     if (n_points == 1){  
 	for (m = 0; m < p; m++){
-	    score[m] += sh_m[m] / sigma_hat + hb[m];
+	    score[m] += 
+		fam->cluster_weight * 
+		(sh_m[m] / sigma_hat + hb[m]);
 	}
-	score[p] += sh_s / sigma_hat + hb[p];
+	score[p] += fam->cluster_weight * (sh_s / sigma_hat + hb[p]);
     }else{
 	for (m = 0; m < p; m++){
-	    score[m] += sh_m[m] / sigma_hat + hb[m] / h;
+	    score[m] += 
+		fam->cluster_weight * 
+		(sh_m[m] / sigma_hat + hb[m] / h);
 	}
-	score[p] += sh_s / sigma_hat + hb[p] / h;
+	score[p] += fam->cluster_weight * (sh_s / sigma_hat + hb[p] / h);
     }
 
     if (level == 1){
@@ -1904,14 +1920,17 @@ static void update(int level,
     if (n_points >= 2){
 	for (m = 0; m <= p; m++){
 	    for (k = 0; k <= m; k++){
-		hessian[m + k * (p+1)] += hbb[m + k * (p+1)] / h  -   
-		    (hb[m] / h) * (hb[k] / h); /* 0 at the solution? No!!! */
+		hessian[m + k * (p+1)] += 
+		    fam->cluster_weight * (
+		    hbb[m + k * (p+1)] / h  -   
+		    (hb[m] / h) * (hb[k] / h)); /* 0 at the solution? No!!! */
 	    }
 	}
     }else{ /* Laplace */
 	for (m = 0; m <= p; m++){
 	    for (k = 0; k <= m; k++){
-		hessian[m + k * (p+1)] += hbb[m + k * (p+1)]; /* - */    
+		hessian[m + k * (p+1)] += 
+		    fam->cluster_weight * (hbb[m + k * (p+1)]); /* - */    
 		    /* (hb[m]) * (hb[k]) */;  /* 0 at the solution? No!!! */
 	    }
 	}
@@ -2032,6 +2051,7 @@ void frail_fun(int pp1,
     start = 0;
     for (i = 0; i < ext->n_fam; i++){
 	fam->n = ext->fam_size[i];
+	fam->cluster_weight = ext->cluster_weights[i];
 	fam->x_beta = ext->x_beta + start;
 	fam->yw = ext->yw + start;
 	fam->weights = ext->weights + start;
@@ -2135,6 +2155,7 @@ double fun(int pp1,
     start = 0;
     for (i = 0; i < ext->n_fam; i++){
 	fam->n = ext->fam_size[i];
+	fam->cluster_weight = ext->cluster_weights[i];
 	fam->x_beta = ext->x_beta + start;
 	fam->yw = ext->yw + start;
 	fam->weights = ext->weights + start;
@@ -2223,6 +2244,7 @@ void fun1(int pp1,
 
     for (i = 0; i < ext->n_fam; i++){
 	fam->n = ext->fam_size[i];
+	fam->cluster_weight = ext->cluster_weights[i];
 	fam->x_beta = ext->x_beta + start;
 	fam->yw = ext->yw + start;
 	fam->weights = ext->weights + start;
@@ -2312,6 +2334,7 @@ void fun2(int pp1,
     start = 0;
     for (i = 0; i < ext->n_fam; i++){
 	fam->n = ext->fam_size[i];
+	fam->cluster_weight = ext->cluster_weights[i];
 	fam->x_beta = ext->x_beta + start;
 	fam->yw = ext->yw + start;
 	fam->weights = ext->weights + start;

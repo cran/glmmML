@@ -1,4 +1,4 @@
-        SUBROUTINE ghq(n, x, w)
+        SUBROUTINE ghq(n, x, w, modified)
 C
 C       ========================================================
 C       Purpose : Compute the zeros of Hermite polynomial Ln(x)
@@ -25,6 +25,8 @@ C     Updated to more Fortran 77 than 66! (2006-08-04)
 
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
       DIMENSION X(N), W(N)
+      LOGICAL modified
+
 C     To silence the compiler:
       z = 0.0
       hf = 0.0
@@ -95,9 +97,12 @@ C        x(i) = x(i) * 1.41421356237
 C      enddo
 
 C *** New change! (2006-08-04) ***
-      do i = 1, n
-         w(i) = w(i) * exp(x(i)**2)
-      enddo
+C *** A coorection: Make it depend on 'modified'.
+      if (modified) then
+         do i = 1, n
+            w(i) = w(i) * exp(x(i)**2)
+         enddo
+      endif
       
       RETURN
       END

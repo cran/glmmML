@@ -12,266 +12,218 @@ extern P_fun *P;
 extern G_fun *G;
 extern H_fun *H;
 
-static double get2_gam(int n, /* family size */
-		       double *weights,
-		       double *lin, /* x %*% beta for this family */ 
-		       double *yw,
-		       double gam_start);
+/* Binomial, logit link: */
+static double get0_gam(Cluster *clust);
 
-static double get3_gam(int n, /* family size */
-		       double *weights,
-		       double *lin, /* x %*% beta for this family */ 
-		       double ytot);
-	
-static double gam_fun(double gam, void *extra){
+/* Binomial, cloglog link: */
+static double get1_gam(Cluster *clust);
+
+/* Poisson, log link: */
+static double get2_gam(Cluster *clust);
+
+/******************************************************************/
+
+static double gam0_fun(double gam, void *info){
+    Cluster *clust;
+    double dg, egam, egscore;
     int i;
-    double res;
-    Ext_gam *ex;
+    double x;
+    double location = 0.0;
+    double scale = 1.0;
+    int give_log = 0;
 
-    ex = extra;
+    clust = info;
 
-    /* res = ex->ytot; */
-    res = 0.0;
-    for (i = 0; i < ex->n; i++){
-	/* res -= P(ex->lin[i] + gam, 1.0, 1.0);  check !!!!! */
-	res += G(ex->lin[i] + gam, ex->yw[i], ex->weights[i]);
+    dg = clust->ytot;
+/*    egam = exp(gam); */
+    for (i = 0; i < clust->n; i++){
+	x = gam + clust->lin[i];
+	dg -= clust->weight[i] * plogis(x, location, scale, 1, give_log);
+/*	egscore = egam * exp(ex->lin[i]);
+	dg -= ex->weights[i] * egscore / ( 1.0 + egscore);
+*/
     }
-    return(res);
+    return(dg);
 }
 
-static double get_gam(int n, /* family size */
-	       double *lin, /* x %*% beta for this family */ 
-	       int ytot){
-    int i, iter;
+static double get0_gam(Cluster *clust){
 
-    double gam, delta, eps;
-    double *p;
-    double tal, nam, upper, lower;
+    /* Binomial, logit link */
+    int i, iter, itmax;
 
-    p = Calloc(n, double);
+    double gam, egam, p, delta, eps, dg, d2g;
+    double *score, wscore, mlin;
+
+    double gmin, gmax;
+    double ax, bx;
+
+
+    itmax = 25;
     eps = 0.000001;
 
-    if ((ytot == 0)) error("ytot must be strictly positive.");
-    if ((ytot == n)) error("ytot must be strictly less than n.");
-
-    upper = 0.0;
-    lower = 0.0;
-    for (i = 0; i < n; i++){
-	if (lower < lin[i]) lower = lin[i];
-	if (upper > lin[i]) upper = lin[i];
-    }
-    gam = log((double)ytot / (double)(n - ytot));
-    lower = gam - lower;
-    upper = gam - upper;
-    gam = (upper + lower) * 0.5;
-    if ((upper - lower) < eps) return(gam);
-
-    delta = 1.0;
-    iter = 0;
-    while ((fabs(delta) > eps) && (iter < 100)){
-	iter++;
-	tal = ytot;
-	nam = 0.0;
-	for (i = 0; i < n; i++){
-	    p[i] = exp(P(lin[i] + gam, 1.0, 1.0)); /* Change !!!!!! */
-	    tal -= p[i];
-	    nam += p[i] * (1.0 - p[i]);
+    gmin = clust->lin[0];
+    gmax = clust->lin[0];
+    for (i = 1; i < clust->n; i++){
+	if (clust->lin[i] < gmin){ 
+	    gmin = clust->lin[i];
+	}else{
+	    if (clust->lin[i] > gmax) gmax = clust->lin[i];
 	}
-	delta = tal / nam;
-	gam += delta;
     }
-    tal = 0.0;
-    for (i = 0; i < n; i++) tal += p[i];
-
-    if (iter > 99){
-	Rprintf("gamma = %f\n", gam);
-	Rprintf("ytot = %d\n", ytot); 
-	Rprintf("n = %d\n", n);
-	Rprintf("upper = %f\n", upper);
-	Rprintf("lower = %f\n", lower);
-	for (i = 0; i < n; i++){
-	    Rprintf("lin[%d] = %f\n", i, lin[i]);
+    gam = log(clust->ytot / (clust->wtot - clust->ytot)); /* start value */
+    ax = gam - gmax;
+    bx = gam - gmin;
+    if (abs (ax - bx) < eps) return((ax + bx) / 2.0);
+    if (gam0_fun(ax, clust) * gam0_fun(bx, clust) > 0.0){
+	Rprintf("f(%f) = %f, f(%f) = %f\n", 
+		ax, gam0_fun(ax, clust), bx, gam0_fun(bx, clust));
+	Rprintf("ytot = %f\n", clust->ytot); 
+	Rprintf("wtot = %f\n", clust->wtot); 
+	for (i = 0; i < clust->n; i++){
+	    Rprintf("lin[%d] = %f\n", i, clust->lin[i]);
+	    Rprintf("yw[%d] = %f\n", i, clust->yw[i]);
+	    Rprintf("weights[%d] = %f\n", i, clust->weight[i]);
 	}
-	error("Too many iterations in [get_gam]");
+	error("Wrong interval in [get0_gam]");
     }
+    gam = GB_zeroin(ax, bx, &gam0_fun, clust, &eps, &itmax);
 
-    Free(p);
     return(gam);
 }
 
-static double get2_gam(int n, /* family size */
-		       double *weights,
-		       double *lin, /* x %*% beta for this family */ 
-		       double *yw,
-		       double gam_start){
-
-/* For Binomial families */
-    double ax;
-    double bx;
-    Ext_gam *extra;
-    double Tol;
-    int Maxit;
-    double res;
-    double gam;
+static double gam1_fun(double gam, void *info){
+    Cluster *clust;
+    double dg, s;
     int i;
+    clust = info;
 
-    extra = Calloc(1, Ext_gam);
-    /*
-    if (abs(ytot) < 0.0001) error("ytot must be strictly positive.");
-    if (abs(ytot - wtot) < 0.0001) 
-	error("ytot must be strictly less than wtot.");
-    */
-    ax = 0.0;
-    bx = 0.0;
-    for (i = 0; i < n; i++){
-	if (ax < lin[i]) ax = lin[i];
-	if (bx > lin[i]) bx = lin[i];
+    dg = 0.0;
+    for (i = 0; i < clust->n; i++){
+	s = exp(clust->lin[i]);
+	dg += s * (clust->weight[i] + clust->yw[i] / expm1(-s * exp(gam)));
     }
-    gam = gam_start;
-    ax = gam - ax;
-    bx = gam - bx; /* Check if not bx = gam + bx!? */
-
-    extra->yw = yw;
-    extra->weights = weights;
-    extra->n = n;
-    extra->lin = lin;
-
-    Tol = 0.0;
-    Maxit = 25;
-    res = GB_zeroin(ax, bx, &gam_fun, extra, &Tol, &Maxit);
-    Free(extra);
-    return(res);
+    return(-dg);
 }
 
-static double get3_gam(int n, /* family size */
-		       double *weights,
-		       double *lin, /* x %*% beta for this family */ 
-		       double ytot){
+static double get1_gam(Cluster *clust){
+
+    /* Binomial, cloglog link */
+    int i, iter, itmax;
+
+    double gam, egam, p, delta, eps, dg, d2g;
+    double *score, wscore, mlin;
+
+    double gmin, gmax;
+    double ax, bx;
+
+    itmax = 25;
+    eps = 0.000001;
+
+    gmin = clust->lin[0];
+    gmax = clust->lin[0];
+    for (i = 1; i < clust->n; i++){
+	if (clust->lin[i] < gmin){ 
+	    gmin = clust->lin[i];
+	}else{
+	    if (clust->lin[i] > gmax) gmax = clust->lin[i];
+	}
+    }
+    gam = log( -log(1.0 - clust->ytot / clust->wtot) ); /* start value */
+    ax = gam - gmax;
+    bx = gam - gmin;
+    if (abs (ax - bx) < eps) return((ax + bx) / 2.0);
+    if (gam1_fun(ax, clust) * gam1_fun(bx, clust) > 0.0){
+	Rprintf("f(%f) = %f, f(%f) = %f\n", 
+		ax, gam1_fun(ax, clust), bx, gam1_fun(bx, clust));
+	Rprintf("ytot = %f\n", clust->ytot); 
+	Rprintf("wtot = %f\n", clust->wtot); 
+	for (i = 0; i < clust->n; i++){
+	    Rprintf("lin[%d] = %f\n", i, clust->lin[i]);
+	    Rprintf("yw[%d] = %f\n", i, clust->yw[i]);
+	    Rprintf("weights[%d] = %f\n", i, clust->weight[i]);
+	}
+	error("Wrong interval in [get0_gam]");
+    }
+    gam = GB_zeroin(ax, bx, &gam1_fun, clust, &eps, &itmax);
+
+    return(gam);
+}
+
+static double get2_gam(Cluster *clust){
 
 /* For Poisson family */
     int j;
     double denom;
 
     denom = 0.0;
-    for (j = 0; j < n; j++){
-	denom += weights[j] * exp(lin[j]);
+    for (j = 0; j < clust->n; j++){
+	denom += clust->weight[j] * exp(clust->lin[j]);
     }
 
-    return ( log( ytot / denom ) );
+    return ( log( clust->ytot / denom ) );
 }
-
 
 double bfun(int p, double *b, void *ex){
     int i;
     int j;
-    int q; /* No. of families */
+    int cl;
+
     int indx;
-    double ytot, wtot;
     double loglik;
 
-    double *lin;
-
     int *cluster;
-    int *ki;
-    double **x;
-    double *y;
-    double *offset;
 
     Extb *ext;
+    Cluster *clust;
 
     ext = ex;
-
-    cluster = ext->cluster;
-    ki = ext->ki;
-    x = ext->x;
-    y = ext->yw;
-    offset = ext->offset;
-
-    lin = ext->x_beta;
-
-    q = ext->n_fam;
-
+    clust = ext->clust;
 /* Get the "linear predictor": */
 
-    if (p > 0){
-	indx = -1;
-	for (i = 0; i < ext->n; i++){
-	    lin[i] = offset[i];
+    for (cl = 0; cl < ext->n_clust; cl++){
+	for (i = 0; i < clust[cl].n; i++){
+	    clust[cl].lin[i] = clust[cl].offset[i];
 	    for (j = 0; j < p; j++){
-		indx++;
-		lin[i] += b[j] * x[i][j];
+		clust[cl].lin[i] += b[j] * clust[cl].x[i][j];
 	    }
 	}
-    }else{ /* Null model */
-	for (i = 0; i < ext->n; i++) lin[i] = offset[i];
-    }
+    }			   
 
 /* Now get the gamma's: */
     
     indx = 0;
     if (ext->family <= 1){ /* binomial family */
-	for (i = 0; i < ext->n_fam; i++){  /* NOT Excluding first family!! */
-	    ytot = 0.0;
-	    wtot = 0.0;
-	    for (j = 0; j < ext->fam_size[i]; j++){
-		ytot += ext->yw[indx + j];
-		wtot += ext->weights[indx + j];
+	for (i = 0; i < ext->n_clust; i++){  /* NOT Excluding first family!! */
+	    if (clust[i].out == 0){
+		if (ext->family == 0){ /* logit link */
+		    clust[i].gamma = get0_gam( clust + i );
+		}else{ /* cloglog link */
+		    clust[i].gamma = get1_gam( clust + i );
+		} 
 	    }
-	    if (abs(ytot) < 0.001){
-		ext->fam_out[i] = -1;
-		ext->gamma[i] = -1000; /* -inf */
-	    }else if (abs(ytot - wtot) < 0.001){
-		ext->fam_out[i] = 1;
-		ext->gamma[i] = 1000;  /* +inf */
-	    }else{
-		ext->fam_out[i] = 0;
-		ext->gamma[i] = get2_gam(ext->fam_size[i],
-					 (ext->weights + indx), 
-					 (lin + indx),
-					 (ext->yw + indx),
-					 log( ytot / (wtot - ytot) ));
-	    }
-	    indx += ext->fam_size[i];
+	    indx += clust[i].n;
 	}
     }else{ /* Poisson; ext->family == 2 */
-	for (i = 1; i < ext->n_fam; i++){ /* Excluding first family!! */
-	    ytot = 0.0;
-	    wtot = 0.0;
-	    for (j = 0; j < ext->fam_size[i]; j++){
-		ytot += ext->yw[indx + j];
-		wtot += ext->weights[indx + j];
+	for (i = 1; i < ext->n_clust; i++){ /* Excluding first family!! */
+	    if (clust[i].out == 0){    /* Why? ?2007-04-11         */
+		clust[i].gamma = get2_gam( clust + i );
 	    }
-	    if (abs(ytot) < 0.001){
-		ext->fam_out[i] = -1;
-		ext->gamma[i] = -1000; /* -inf */
-	    }else{
-		ext->fam_out[i] = 0;
-		ext->gamma[i] = get3_gam(ext->fam_size[i],
-					 ext->weights + indx,
-					 (lin + indx),
-					 ytot);
-	    }
-	    indx += ext->fam_size[i];
+	    indx += clust[i].n;
 	}
     }
 
 /* Now get the log likelihood: */
     loglik = 0.0;
-    indx = -1;
     /* printf("beta[%d] = %f\n", 0, b[0]);  */
-    for (i = 0; i < ext->n_fam; i++){
-	if (ext->fam_out[i] == 0){
-	    for (j = 0; j < ext->fam_size[i]; j++){
-		indx++;
-       
-		loglik += P(lin[indx] + ext->gamma[i], 
-				 y[indx], ext->weights[indx]);
+    for (i = 0; i < ext->n_clust; i++){
+	if (clust[i].out == 0){
+	    for (j = 0; j < clust[i].n; j++){
+		loglik += P(clust[i].lin[j] + clust[i].gamma, 
+			    clust[i].yw[j], clust[i].weight[j]);
 	    }
-	}else{
-	    indx += ext->fam_size[i];
 	}
     }
-
+	
     return(-loglik); /* Return: -loglikelihood */
     }
 
@@ -286,60 +238,22 @@ void bfun_gr(int n, double *b, double *gr, void *ex){
     double **x;
 
     Extb *ext;
+    Cluster *clust;
 
     ext = ex;
-    pe = ext->pred;
-    x = ext->x;
-
-    lin = ext->x_beta;
-
+    
+    clust = ext->clust;
+    
 /* Calculate the 'predicted values' at (beta, gamma): */
-    indx = -1;
-
-    if (ext->family <= 1){ /* Bernoulli case */
-	for (i = 0; i < ext->n_fam; i++){
-	    if (ext->fam_out[i] == 0){
-		for (j = 0; j < ext->fam_size[i]; j++){
-		    indx++;
-		    ext->pred[indx] = exp(P(ext->gamma[i] + lin[indx], 1.0, 
-					ext->weights[indx])); /* ????? */
-		}
-	    }else{
-		tmp = (double)(ext->fam_out[i] == 1);
-		for(j = 0; j < ext->fam_size[i]; j++){
-		    indx++;
-		    ext->pred[indx] = tmp;
-		}
-	    }
-	}
-	 
-    }else{ /* Poisson case */
-	for (i = 0; i < ext->n_fam; i++){
-	    if (ext->fam_out[i] == 0){
-		for (j = 0; j < ext->fam_size[i]; j++){
-		    indx++;
-		    ext->pred[indx] = exp(ext->gamma[i] + lin[indx]);
-		}
-	    }else{
-		for(j = 0; j < ext->fam_size[i]; j++){
-		    indx++;
-		    ext->pred[indx] = 0.0;
-		}
-	    }
-	}
-    }
-
+/* No, we don't! */
     for (s = 0; s < ext->p; s++){
 	gr[s] = 0.0;
-	indx = -1;
-	for (i = 0; i < ext->n_fam; i++){
-	    if (ext->fam_out[i]) indx += ext->fam_size[i];
-	    else{
-/* Calculate gr[s]: */
-		for (j = 0; j < ext->fam_size[i]; j++){
-		    indx++;
-		    gr[s] += (ext->yw[indx] - pe[indx]) *
-			x[indx][s];
+	for (i = 0; i < ext->n_clust; i++){
+	    if (clust[i].out ==  0){
+		for (j = 0; j < clust[i].n; j++){
+		    gr[s] += clust[i].x[j][s] * 
+			G(clust[i].gamma + clust[i].lin[j], 
+			  clust[i].yw[j], clust[i].weight[j]);  
 		}
 	    }
 	}
@@ -353,14 +267,16 @@ void bfun_gr(int n, double *b, double *gr, void *ex){
 void bfun_hess(int p, double *b, double *hessian, Extb *ext){
 
     int m, s, i, j, indx;
-
+    Cluster *clust;
     
     double *h, *h_fam;
     double **hess;
     double gam, t1, t2;
     
+    clust = ext->clust;
+
     h = Calloc(ext->n, double);
-    h_fam = Calloc(ext->n_fam, double);
+    h_fam = Calloc(ext->n_clust, double);
     hess = Calloc(p, double *);
     for (m = 0; m < p; m++){
 	hess[m] = hessian + m * p;
@@ -369,18 +285,19 @@ void bfun_hess(int p, double *b, double *hessian, Extb *ext){
     for (i = 0; i < ext->n; i++) h[i] = 0.0;
 
     indx = -1;
-    for (i = 0; i < ext->n_fam; i++){
+    for (i = 0; i < ext->n_clust; i++){
 	h_fam[i] = 0.0;
-	if (ext->fam_out[i] == 0){
-	    gam = ext->gamma[i];
-	    for (j = 0; j < ext->fam_size[i]; j++){
+
+	if (clust[i].out == 0){
+	    gam = clust[i].gamma;
+	    for (j = 0; j < clust[i].n; j++){
 		indx++;
-		h[indx] = H(ext->x_beta[indx] + gam, ext->yw[indx],
-				ext->weights[indx]);
+		h[indx] = H(clust[i].lin[j] + gam, clust[i].yw[j],
+				clust[i].weight[j]);
 		h_fam[i] += h[indx];
 	    }
 	}else{
-	    indx += ext->fam_size[i];
+	    indx += clust[i].n;
 	}
     }
     
@@ -392,22 +309,28 @@ void bfun_hess(int p, double *b, double *hessian, Extb *ext){
     
     for (m = 0; m < p; m++){
 	for (s = 0; s <= m; s++){
-	    for (i = 0; i < ext->n; i++){
-		hess[m][s] += ext->x[i][m] * ext->x[i][s] * h[i];
-	    }
 	    indx = -1;
-	    for (i = 0; i < ext->n_fam; i++){
-		if (ext->fam_out[i] == 0){
+	    for (i = 0; i < ext->n_clust; i++){
+		for (j = 0; j < clust[i].n; j++){
+		    indx++;
+		    hess[m][s] += clust[i].x[j][m] * 
+		    clust[i].x[j][s] * h[indx];
+		}
+	    }
+
+	    indx = -1;
+	    for (i = 0; i < ext->n_clust; i++){
+		if (clust[i].out == 0){
 		    t1 = 0.0;
 		    t2 = 0.0;
-		    for (j = 0; j < ext->fam_size[i]; j++){
+		    for (j = 0; j < clust[i].n; j++){
 			indx++;
-			t1 += ext->x[indx][m] * h[indx];
-			t2 += ext->x[indx][s] * h[indx];
+			t1 += clust[i].x[j][m] * h[indx];
+			t2 += clust[i].x[j][s] * h[indx];
 		    }
 		    hess[m][s] -= t1 * t2 / h_fam[i];
 		}else{
-		    indx += ext->fam_size[i];
+		    indx += clust[i].n;
 		}
 	    }
 	}
@@ -420,6 +343,7 @@ void bfun_hess(int p, double *b, double *hessian, Extb *ext){
 	    hess[m][s] = hess[s][m];
 	}
     }
+    Free(hess);
     Free(h_fam);
     Free(h);
 }

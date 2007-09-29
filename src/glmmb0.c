@@ -48,11 +48,13 @@ void glmm_boot0(int *family,
     double reltol;
 #endif
     Extb *ext;
+    Cluster *clust;
     int i;
     int j;
-
-    int *ki;
-    int *ki_tmp;
+    int cl;
+    int rep;
+    int indx;
+    int ant_fam_out;
 
     double Fmin;
     double *b = NULL;
@@ -82,6 +84,7 @@ void glmm_boot0(int *family,
     reltol = abstol;
 
     ext = Calloc(1, Extb);
+    clust = Calloc(*n_fam, Cluster);
 /************************ Fill in ext: *****************/
     ext->family = *family; /* == 0 for binomial(logit) */
 
@@ -89,37 +92,50 @@ void glmm_boot0(int *family,
     for (i = 0; i < *n_fam; i++){
 	ext->n += fam_size[i];
     }
-    ext->p = 0;
-    ext->fam_size = fam_size;
-    ext->n_fam = *n_fam;
-    ext->success = Calloc(*n_fam, int);
-    ext->fam_out = Calloc(ext->n_fam, int);
-    ext->x_beta = Calloc(ext->n, double);
 
-    ext->x = NULL;
+    ext->n_clust = *n_fam;
 
-    ext->pred = Calloc(ext->n, double);
-    ext->offset = Calloc(ext->n, double);
-    for (i = 0; i < ext->n; i++){
-	ext->offset[i] = offset[i];
+    ext->clust = clust;
+
+    indx = 0;
+    for (cl = 0; cl < ext->n_clust; cl++){
+	clust[cl].n = fam_size[cl];
+	clust[cl].p = ext->p;
+	clust[cl].yw = Calloc(clust[cl].n, double);
+	clust[cl].lin = Calloc(clust[cl].n, double);
+	clust[cl].weight = weights + indx;
+	clust[cl].offset = offset + indx;
+	for (i = 0; i < clust[cl].n; i++){
+	    clust[cl].yw[i] = weights[indx] * y[indx];
+	    indx++;
+	}
     }
+    for (cl = 0; cl < ext->n_clust; cl++){ 
+	clust[cl].ytot = 0.0;
+	clust[cl].wtot = 0.0;
+	for (i = 0; i < clust[cl].n; i++){
+	    clust[cl].wtot += clust[cl].weight[i];
+	    clust[cl].ytot += clust[cl].yw[i];
+	}
+    }
+
+    ant_fam_out = 0;
     
-    ext->ki = Calloc(ext->n, int);
-    ext->cluster = Calloc(ext->n, int);
-    for (i = 0; i < ext->n; i++)
-	ext->cluster[i] = cluster[i];
-    ext->gamma = Calloc(ext->n_fam, double);
-    ext->yw = Calloc(ext->n, double);
-    for (i = 0; i < ext->n; i++) ext->yw[i] = y[i] * weights[i];
-    ext->weights = weights;
-/**************** Filled in ext  *************************/
-
-    ki = ext->ki;
-    ki_tmp = Calloc(ext->n, int);
-
-    for (i = 0; i < ext->n; i++){
-	ki[i] = i;
+    for (i = 0; i < ext->n_clust; i++){
+	if (abs(clust[i].ytot) < 0.001){
+	    clust[i].out = -1;
+	    clust[i].gamma = -1000.0; /* -inf */
+	}else if (abs(clust[i].wtot - clust[i].ytot) < 0.001 & 
+		  (ext->family <= 1)){
+	    clust[i].out = 1;
+	    clust[i].gamma = 1000.0; /* +inf */
+	}else{
+	    ant_fam_out++;
+	    clust[i].out = 0;
+	}
     }
+
+/**************** Filled in ext  *************************/
 
 /* Don't need the following in a NULL model! */    
 /* Note that this searches for a minimum: (!!) */
@@ -140,8 +156,8 @@ void glmm_boot0(int *family,
 
     if (*trace) Rprintf("loglik = %f\n", *loglik);
 
-    for (i = 0; i < ext->n_fam; i++)
-	frail[i] = ext->gamma[i];
+    for (i = 0; i < ext->n_clust; i++)
+	frail[i] = clust[i].gamma;
 
 /* Gone for now; predicted comes from calling R function
     if (ext->family <= 1){ 
@@ -153,22 +169,59 @@ void glmm_boot0(int *family,
 
 /************** Bootstrapping starts *****************************/
 
-    for (i = 0; i < *boot; i++){
-	if ((i / 10) * 10 == i)
-	    if (*trace)
-		printf("****************************** Replicate No. %d\n", i);
-	if (*family <= 1){
-	    for (j = 0; j < ext->n; j++)
-		ext->yw[j] = rbinom((int)weights[j], predicted[j]);
+    for (rep = 0; rep < *boot; rep++){
+	if (*trace){
+	    if ((rep / 10) * 10 == rep)
+		printf("********************* Replicate No. No. %d\n", i);
+	}
+	if (*family <= 1){ /* Bernoulli */
+	    indx = -1;
+	    for (i = 0; i < ext->n_clust; i++){
+		for (j = 0; j < clust[i].n; j++){
+		    indx++;
+		    clust[i].yw[j] = 
+			rbinom((int)weights[indx], predicted[indx]);
+		}
+	    }
 	}else{
-	    for (j = 0; j < ext->n; j++)
-		ext->yw[j] = rpois(weights[j] * predicted[j]);
-	}		
+	    indx = -1;
+	    for (i = 0; i < ext->n_clust; i++){
+		for (j = 0; j < clust[i].n; j++) /* Poisson */
+		    indx++;
+		    clust[i].yw[j] = rpois(weights[j] * predicted[j]);
+	    }
+	}
+
+	indx = 0;
+	ant_fam_out = 0;
+	for (i = 0; i < ext->n_clust; i++){
+	    clust[i].ytot = 0.0;
+	    for (j = 0; j < clust[i].n; j++){
+		clust[i].ytot += clust[i].yw[j];
+	    }
+	    if (abs(clust[i].ytot) < 0.001){
+		clust[i].out = -1;
+		clust[i].gamma = -1000.0; /* -inf */
+	    }else if (abs(clust[i].wtot - clust[i].ytot) < 0.001 & 
+		      (ext->family <= 1)){
+		clust[i].out = 1;
+		clust[i].gamma = 1000.0; /* +inf */
+	    }else{
+		ant_fam_out++;
+		clust[i].out = 0;
+	    }
+	}
+
+	if (!ant_fam_out){
+	    /* Rprintf("Only trivial CLUSTERS!!!\n"); */
+	    boot_log[i] = 0.0;
+	    if (0.0 >= *loglik) upper++;
+	}else{
 	
-	
-	Fmin = bfun(ext->p, b, ext);
-	boot_log[i] = -Fmin;
-	if (-Fmin >= *loglik) upper++;
+	    Fmin = bfun(ext->p, b, ext);
+	    boot_log[i] = -Fmin;
+	    if (-Fmin >= *loglik) upper++;
+	}
     }
 
     if (*boot) *boot_p = (double)upper / (double)*boot;
@@ -178,17 +231,11 @@ void glmm_boot0(int *family,
     
 /*    vmaxset(vmax1); */
     
-    Free(ext->yw);
-    Free(ext->gamma);
-    Free(ext->cluster);
-    Free(ext->ki);
-    Free(ext->offset);
-    Free(ext->pred);
-    Free(ext->x_beta);
-    Free(ext->fam_out);
-    Free(ext->success);
+    for (i = 0; i < ext->n_clust; i++){
+	Free(clust[i].yw);
+	Free(clust[i].x);
+	Free(clust[i].lin);
+    }
 
     Free(ext);
-
-    Free(ki_tmp);
 }

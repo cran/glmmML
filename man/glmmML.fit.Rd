@@ -8,7 +8,7 @@ This function is called by \code{glmmML}, but it can also be called
 directly by the user.
 }
 \usage{
-glmmML.fit(X, Y, weights = rep(1, NROW(Y)),
+glmmML.fit(X, Y, weights = rep(1, NROW(Y)), cluster.weights = rep(1, NROW(Y)),
 start.coef = NULL, start.sigma = NULL,
 fix.sigma = FALSE,
 cluster = NULL, offset = rep(0, nobs), family = binomial(), n.points =
@@ -20,6 +20,7 @@ intercept = TRUE, boot = 0, prior = 0)
   \item{X}{Design matrix of covariates.}
   \item{Y}{Response vector. Or two-column matrix.}
   \item{weights}{Case weights. Defaults to one.}
+  \item{cluster.weights}{Cluster weights. Defaults to one.}
   \item{start.coef}{Starting values for the coefficients. }
   \item{start.sigma}{Starting value for the mixing standard deviation.}
   \item{fix.sigma}{Should sigma be fixed at start.sigma?}

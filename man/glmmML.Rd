@@ -8,7 +8,8 @@ Fits GLMs with random intercept by Maximum Likelihood and numerical
 integration via Gauss-Hermite quadrature.
 }
 \usage{
-glmmML(formula, family = binomial, data, cluster, weights, subset, na.action, 
+glmmML(formula, family = binomial, data, cluster, weights,
+cluster.weights, subset, na.action, 
 offset, prior = c("gaussian", "logistic", "cauchy"),
 start.coef = NULL, start.sigma = NULL, fix.sigma = FALSE, 
 control = list(epsilon = 1e-08, maxit = 200, trace = FALSE),
@@ -28,6 +29,7 @@ method = c("Laplace", "ghq"), n.points = 1, boot = 0)
 }
 \item{cluster}{Factor indicating which items are correlated.}
 \item{weights}{Case weights. Defaults to one.}
+\item{cluster.weights}{Cluster weights. Defaults to one.}
   \item{subset}{an optional vector specifying a subset of observations
     to be used in the fitting process.}
   \item{na.action}{See glm.}
