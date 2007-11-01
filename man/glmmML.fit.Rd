@@ -1,4 +1,4 @@
-\encoding{UTF-8}
+\encoding{latin1}
 \name{glmmML.fit}
 \alias{glmmML.fit}
 
@@ -45,10 +45,10 @@ intercept = TRUE, boot = 0, prior = 0)
 \value{
   A list. For details, see the code, and \code{glmmML}.
 }
-\references{\enc{BrostrÃ¶m}{Brostrom} (2003)}
-\author{\enc{GÃ¶ran BrostrÃ¶m}{Goran Brostrom}}
-\note{The profiling method is very fast, compared to \code{glmm} and
-  \code{glmmPQL}} 
+\references{\enc{Broström}{Bridgewater} (2003)}
+\author{\enc{Göran Broström}{George Bridgewater}}
+%\note{The profiling method is very fast, compared to \code{glmm} and
+%  \code{glmmPQL}} 
 
 \seealso{\code{\link{glmmML}}, \code{\link[MASS]{glmmPQL}}, and
   \code{\link[Matrix]{lmer}}.} 

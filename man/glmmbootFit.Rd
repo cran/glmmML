@@ -1,4 +1,4 @@
-\encoding{UTF-8}
+\encoding{latin1}
 \name{glmmbootFit}
 \alias{glmmbootFit}
 %- Also NEED an '\alias' for EACH other topic documented here.
@@ -32,9 +32,9 @@ control = list(epsilon = 1.e-8, maxit = 200, trace
   \item{boot}{number of bootstrap replicates. If equal to zero, no test
     of significance of the grouping factor is performed.}
 }
-\details{
+%\details{
 
-}
+%}
 \value{
 A list with components
   \item{coefficients}{Estimated regression coefficients (note: No intercept).}
@@ -50,7 +50,7 @@ A list with components
   \item{boot_rep}{The number of bootstrap replicates.}
 }
 %\references{}
-\author{\enc{GÃ¶ran BrostrÃ¶m}{Goran Brostrom}}
+\author{\enc{Göran Broström}{George Bridgewater}}
 \note{
 A profiling approach is used to estimate the cluster effects. 
 }

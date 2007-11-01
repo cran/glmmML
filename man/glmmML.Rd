@@ -1,4 +1,4 @@
-\encoding{UTF-8}
+\encoding{latin1}
 \name{glmmML}
 \alias{glmmML}
 
@@ -13,7 +13,7 @@ cluster.weights, subset, na.action,
 offset, prior = c("gaussian", "logistic", "cauchy"),
 start.coef = NULL, start.sigma = NULL, fix.sigma = FALSE, 
 control = list(epsilon = 1e-08, maxit = 200, trace = FALSE),
-method = c("Laplace", "ghq"), n.points = 1, boot = 0) 
+method = c("Laplace", "ghq"), n.points = 8, boot = 0) 
 }
 %- maybe also `usage' for other objects documented here.
 \arguments{
@@ -47,7 +47,9 @@ Possible choices are "gaussian" (default), "logistic", and "cauchy".}
   \item{method}{There are two choices "Laplace" (default) and "ghq"
     (Gauss-Hermite). }
   \item{n.points}{Number of points in the Gauss-Hermite quadrature. If
-    n.points == 1, the Gauss-Hermite is the same as Laplace approximation.}
+    n.points == 1, the Gauss-Hermite is the same as Laplace
+    approximation. If \code{method} is set to "Laplace", this parameter
+    is ignored.}
   \item{boot}{Do you want a bootstrap estimate of cluster effect? The default
     is \emph{No} (\code{boot = 0}). If you want to say yes, enter a
     positive integer here. It should be equal to the number of bootstrap
@@ -70,8 +72,8 @@ the help page for glm for details.}
   \item{sigma}{The estimated random effects' standard deviation}
   \item{sigma.sd}{Its standard error}
   \item{variance}{The estimated variance-covariance matrix. The last
-    column/row corresponds to the log of the standard
-    deviation of the random effects (log(sigma))} 
+    column/row corresponds to the standard
+    deviation of the random effects (\code{sigma})} 
   \item{aic}{AIC}
   \item{bootP}{Bootstrap p value from testing the null hypothesis of no
     random effect (sigma = 0)} 
@@ -88,10 +90,10 @@ the help page for glm for details.}
   \item{prior}{Which prior was used?}
   \item{call}{The function call}
 }
-\references{BrostrÃ¶m (2003). Generalized linear models with random
+\references{Broström (2003). Generalized linear models with random
   intercepts. \url{http://www.stat.umu.se/forskning/reports/glmmML.pdf}
  }
-\author{\enc{GÃ¶ran BrostrÃ¶m}{Goran Brostrom}}
+\author{\enc{Göran Broström}{George Bridgewater}}
 \note{The optimization may not converge with
 the default value of \code{start.sigma}. In that case, try different
 start values for sigma. If still no convergence, consider the

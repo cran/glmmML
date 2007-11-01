@@ -1,4 +1,4 @@
-\encoding{UTF-8}
+\encoding{latin1}
 \name{summary.glmmML}
 \alias{summary.glmmML}
 %- Also NEED an '\alias' for EACH other topic documented here.
@@ -21,7 +21,7 @@ It simply calls \code{print.glmmML}
 Nothing is returned.
 }
 %\references{See }
-\author{\enc{GÃ¶ran BrostrÃ¶m}{George Bridgewater}}
+\author{\enc{Göran Broström}{George Bridgewater}}
 \note{Preliminary}
 
  

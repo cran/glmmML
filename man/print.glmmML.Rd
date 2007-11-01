@@ -1,4 +1,4 @@
-\encoding{UTF-8}
+\encoding{latin1}
 \name{print.glmmML}
 \alias{print.glmmML}
 \title{Prints a 'glmmML' object.}
@@ -22,7 +22,7 @@ Nothing in particular.
   A short summary of the object is printed.
 }
 %\references{\enc{BrostrÃ¶m}{Brostrom} (2003)}
-\author{\enc{GÃ¶ran BrostrÃ¶m}{Goran Brostrom}}
+\author{\enc{Göran Broström}{George Bridgewater}}
 \note{This is the only summary method available for the moment.}
 
 \seealso{\code{\link{glmmML}}}

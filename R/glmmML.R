@@ -14,7 +14,7 @@ glmmML <- function(formula,
                    control = list(epsilon = 1.e-8,
                        maxit = 200, trace = FALSE),
                    method = c("Laplace", "ghq"),
-                   n.points = 1,
+                   n.points = 8,
                    boot = 0){
 
     if (is.list(control)) {

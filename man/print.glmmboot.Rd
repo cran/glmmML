@@ -1,4 +1,4 @@
-\encoding{UTF-8}
+\encoding{latin1}
 \name{print.glmmboot}
 \alias{print.glmmboot}
 \title{Prints a 'glmmML' object.}
@@ -22,7 +22,7 @@ Nothing in particular.
   A short summary of the object is printed.
 }
 %\references{BrostrÃ¶m (2003)}
-\author{GÃ¶ran BrostrÃ¶m}
+\author{Göran Broström}
 \note{This is the only summary method available for the moment.}
 
 \seealso{\code{\link{glmmboot}}}

@@ -1,4 +1,4 @@
-\encoding{UTF-8}
+\encoding{latin1}
 \name{ghq}
 \alias{ghq}
 %- Also NEED an '\alias' for EACH other topic documented here.
@@ -15,14 +15,14 @@ ghq(n.points = 1, modified = TRUE)
   \item{modified}{Multiply by exp(zeros**2)? Default is TRUE.}
 }
 \details{
-
+Based on a Fortran 66 subroutine written by professor Jianming Jin. 
 }
 \value{
  A list vith components
   \item{zeros}{The zeros (abscissas).}
   \item{weights}{The weights}
 }
-\references{Gauss-hermite}
+\references{Gauss-Hermite}
 \author{Jianming Jin, Univ. of Illinois, Urbana-Campaign}
 \note{
 The code is modified to suit the purpose of glmmML, with the permission

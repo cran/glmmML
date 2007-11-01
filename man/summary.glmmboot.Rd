@@ -1,4 +1,4 @@
-\encoding{UTF-8}
+\encoding{latin1}
 \name{summary.glmmboot}
 \alias{summary.glmmboot}
 %- Also NEED an '\alias' for EACH other topic documented here.
@@ -21,7 +21,7 @@ It simply calls \code{print.glmmboot}
 Nothing is returned.
 }
 %\references{See }
-\author{GÃ¶ran BrostrÃ¶m}
+\author{Göran Broström}
 \note{Preliminary}
 
  
