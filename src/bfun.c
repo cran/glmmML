@@ -58,8 +58,8 @@ static double get0_gam(Cluster *clust){
     double ax, bx;
 
 
-    itmax = 25;
-    eps = 0.000001;
+    itmax = 35;
+    eps = 0.00000001;
 
     gmin = clust->lin[0];
     gmax = clust->lin[0];
@@ -73,7 +73,7 @@ static double get0_gam(Cluster *clust){
     gam = log(clust->ytot / (clust->wtot - clust->ytot)); /* start value */
     ax = gam - gmax;
     bx = gam - gmin;
-    if (abs (ax - bx) < eps) return((ax + bx) / 2.0);
+    if (fabs (ax - bx) < eps) return((ax + bx) / 2.0);
     if (gam0_fun(ax, clust) * gam0_fun(bx, clust) > 0.0){
 	Rprintf("f(%f) = %f, f(%f) = %f\n", 
 		ax, gam0_fun(ax, clust), bx, gam0_fun(bx, clust));
@@ -99,10 +99,16 @@ static double gam1_fun(double gam, void *info){
 
     dg = 0.0;
     for (i = 0; i < clust->n; i++){
-	s = exp(clust->lin[i]);
-	dg += s * (clust->weight[i] + clust->yw[i] / expm1(-s * exp(gam)));
+/*	s = exp(clust->lin[i] + gam);
+	dg -= s * (clust->weight[i] + clust->yw[i] / expm1(-s));
+*/	
+	dg += G_cloglog(clust->lin[i] + gam, 
+			clust->yw[i], 
+			clust->weight[i]);
+	
     }
-    return(-dg);
+
+    return(dg);
 }
 
 static double get1_gam(Cluster *clust){
@@ -116,8 +122,8 @@ static double get1_gam(Cluster *clust){
     double gmin, gmax;
     double ax, bx;
 
-    itmax = 25;
-    eps = 0.000001;
+    itmax = 35;
+    eps = 0.00000001;
 
     gmin = clust->lin[0];
     gmax = clust->lin[0];
@@ -131,7 +137,9 @@ static double get1_gam(Cluster *clust){
     gam = log( -log(1.0 - clust->ytot / clust->wtot) ); /* start value */
     ax = gam - gmax;
     bx = gam - gmin;
-    if (abs (ax - bx) < eps) return((ax + bx) / 2.0);
+    if (fabs (ax - bx) < eps) {
+	return((ax + bx) / 2.0);
+    }
     if (gam1_fun(ax, clust) * gam1_fun(bx, clust) > 0.0){
 	Rprintf("f(%f) = %f, f(%f) = %f\n", 
 		ax, gam1_fun(ax, clust), bx, gam1_fun(bx, clust));
@@ -146,6 +154,9 @@ static double get1_gam(Cluster *clust){
     }
     gam = GB_zeroin(ax, bx, &gam1_fun, clust, &eps, &itmax);
 
+/*    if (*trace){
+	Rprintf("gam = %f\n", gam);
+    } */
     return(gam);
 }
 
@@ -192,6 +203,7 @@ double bfun(int p, double *b, void *ex){
 /* Now get the gamma's: */
     
     indx = 0;
+
     if (ext->family <= 1){ /* binomial family */
 	for (i = 0; i < ext->n_clust; i++){  /* NOT Excluding first family!! */
 	    if (clust[i].out == 0){
@@ -204,8 +216,9 @@ double bfun(int p, double *b, void *ex){
 	    indx += clust[i].n;
 	}
     }else{ /* Poisson; ext->family == 2 */
-	for (i = 1; i < ext->n_clust; i++){ /* Excluding first family!! */
-	    if (clust[i].out == 0){    /* Why? ?2007-04-11         */
+	for (i = 0; i < ext->n_clust; i++){ /* Excluding first family!! */
+/* Why? ?2007-04-11. */ /* Changed on 2007-12-14 */
+	    if (clust[i].out == 0){    
 		clust[i].gamma = get2_gam( clust + i );
 	    }
 	    indx += clust[i].n;

@@ -1529,7 +1529,7 @@ static void update(int level,
     }
 
     tmp /= (double)fam->n;
-    if (abs(tmp) < 1.e-16 || abs(fam->sigma) < 1.e-16) u_hat = 0;
+    if (fabs(tmp) < 1.e-16 || fabs(fam->sigma) < 1.e-16) u_hat = 0;
     else u_hat = -tmp / fam->sigma; /* Start value for u_hat */
 /*
     if (fam->sigma > 1000.0){ 

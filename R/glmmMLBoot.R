@@ -1,5 +1,5 @@
 glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)), 
-                         start.coef = NULL, 
+                         start.coef = NULL,
                          cluster = rep(1, length(Y)),                        
                          offset = rep(0, length(Y)),
                          family = binomial(),
@@ -52,7 +52,7 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
 
     if (is.null(offset)) offset <- rep(0, length(Y))
     glmFit <- glm.fit(X, Y, weights = weights,
-                      start = start.coef,
+                      ##start = c(0, start.coef),
                       offset = offset,
                       family = family,
                       control = control,
@@ -106,7 +106,7 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
     if (p >= 1){
         means <- colMeans(X)
         X <- scale(X, center = TRUE, scale = FALSE)
-        
+        ## cat("means = ", means, "\n")
         fit <- .C("glmm_boot",
                   as.integer(fam),
                   as.integer(p),
@@ -124,18 +124,24 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
                   as.integer(boot),
                   beta = double(p),
                   predicted = as.double(predicted), # Watch up! #
+                  fitted = double(length(Y)),
                   loglik = double(1),
                   variance = double(p * p),
                   info = integer(1),
                   frail = double(nFam),
                   bootP = double(1),
                   bootLog = double(boot),
-                  convergence = integer(1)
+                  convergence = integer(1),
+                  DUP = FALSE,
+                  PACKAGE = "glmmML"
                   )
         res <- list(coefficients = fit$beta,
+                    predicted = fit$predicted,
+                    fitted = fit$fitted,
                     logLik = fit$loglik,
                     cluster.null.deviance = cluster.null.deviance,
-                    frail = fit$frail,
+                    ## Corrects for "centering" above (Added 0.72):
+                    frail = fit$frail - means * fit$beta,
                     bootLog = fit$bootLog,
                     bootP = fit$bootP,
                     info = fit$info)
@@ -168,14 +174,19 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
                   as.integer(boot),
                   predicted = as.double(predicted),
                   ##beta = double(p),
+                  fitted = double(length(Y)),
                   loglik = double(1),
                   ##hessian = double(p * p),
                   frail = double(nFam),
                   bootP = double(1),
                   bootLog = double(boot),
-                  convergence = integer(1)
+                  convergence = integer(1),
+                  DUP = FALSE,
+                  PACKAGE = "glmmML"
                   )
         res <- list(coefficients = NULL,
+                    predicted = fit$predicted,
+                    fitted = fit$fitted,
                     logLik = fit$loglik,
                     cluster.null.deviance = cluster.null.deviance,
                     frail = fit$frail,

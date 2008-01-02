@@ -25,7 +25,7 @@
  *
  * Output
  *	Zeroin returns an estimate for the root with accuracy
- *	4*EPSILON*abs(x) + tol
+ *	4 * EPSILON * fabs(x) + tol
  *	*Tol returns estimated precision
  *	*Maxit returns actual # of iterations
  *

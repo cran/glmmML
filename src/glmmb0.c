@@ -37,6 +37,7 @@ void glmm_boot0(int *family,
 		int *trace,
 		int *boot,
 		double *predicted,
+		double *fitted,
 		double *loglik,
 		double *frail,
 		double *boot_p,
@@ -122,10 +123,10 @@ void glmm_boot0(int *family,
     ant_fam_out = 0;
     
     for (i = 0; i < ext->n_clust; i++){
-	if (abs(clust[i].ytot) < 0.001){
+	if (fabs(clust[i].ytot) < 0.001){
 	    clust[i].out = -1;
 	    clust[i].gamma = -1000.0; /* -inf */
-	}else if (abs(clust[i].wtot - clust[i].ytot) < 0.001 & 
+	}else if (fabs(clust[i].wtot - clust[i].ytot) < 0.001 & 
 		  (ext->family <= 1)){
 	    clust[i].out = 1;
 	    clust[i].gamma = 1000.0; /* +inf */
@@ -186,9 +187,11 @@ void glmm_boot0(int *family,
 	}else{
 	    indx = -1;
 	    for (i = 0; i < ext->n_clust; i++){
-		for (j = 0; j < clust[i].n; j++) /* Poisson */
+		for (j = 0; j < clust[i].n; j++){ /* Poisson */
 		    indx++;
-		    clust[i].yw[j] = rpois(weights[j] * predicted[j]);
+		    clust[i].yw[j] = 
+			rpois(weights[indx] * predicted[indx]);
+		}
 	    }
 	}
 
@@ -199,10 +202,10 @@ void glmm_boot0(int *family,
 	    for (j = 0; j < clust[i].n; j++){
 		clust[i].ytot += clust[i].yw[j];
 	    }
-	    if (abs(clust[i].ytot) < 0.001){
+	    if (fabs(clust[i].ytot) < 0.001){
 		clust[i].out = -1;
 		clust[i].gamma = -1000.0; /* -inf */
-	    }else if (abs(clust[i].wtot - clust[i].ytot) < 0.001 & 
+	    }else if (fabs(clust[i].wtot - clust[i].ytot) < 0.001 & 
 		      (ext->family <= 1)){
 		clust[i].out = 1;
 		clust[i].gamma = 1000.0; /* +inf */

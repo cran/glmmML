@@ -44,6 +44,7 @@ void glmm_boot(int *family,
 	       int *boot,
 	       double *beta,
 	       double *predicted,
+	       double *fitted,
 	       double *loglik,
 	       double *variance,
 	       int *info, 
@@ -86,6 +87,7 @@ void glmm_boot(int *family,
     int ant_fam_out;
 
     double tmp;
+    double one = 1.0;
 
     int rep;
 
@@ -163,10 +165,10 @@ void glmm_boot(int *family,
     ant_fam_out = 0;
     
     for (i = 0; i < ext->n_clust; i++){
-	if (abs(clust[i].ytot) < 0.001){
+	if (fabs(clust[i].ytot) < 0.001){
 	    clust[i].out = -1;
 	    clust[i].gamma = -1000.0; /* -inf */
-	}else if (abs(clust[i].wtot - clust[i].ytot) < 0.001 & 
+	}else if (fabs(clust[i].wtot - clust[i].ytot) < 0.001 & 
 		  (ext->family <= 1)){
 	    clust[i].out = 1;
 	    clust[i].gamma = 1000.0; /* +inf */
@@ -188,6 +190,7 @@ void glmm_boot(int *family,
 
     for (i = 0; i < *p; i++){
 	b[i] = start_beta[i];
+	if (*trace) Rprintf("start_beta[%d] = %f", i, b[i]);
     }
 
     for (i = 0; i < ext->p; i++){
@@ -219,6 +222,31 @@ void glmm_boot(int *family,
     }
     for (i = 0; i < ext->n_clust; i++){
 	frail[i] = clust[i].gamma;
+    }
+
+/* Calculate fitted values, _including_ the clustering... */
+
+    indx = -1;
+    for (i = 0; i < *n_fam; i++){
+	if (clust[i].out){
+	    for (j = 0; j < clust[i].n; j++){
+		indx++;
+		fitted[indx] = clust[i].yw[j];
+	    }
+	}else{
+	    for (j = 0; j < clust[i].n; j++){
+		indx++;
+		if (ext->family <= 1){
+		    fitted[indx] = exp(P(clust[i].lin[j] + 
+					 clust[i].gamma, 
+					 one, 
+					 clust[i].weight[j]));
+		}else{
+		    fitted[indx] = exp(clust[i].lin[j] +
+				       clust[i].gamma);
+		}
+	    }
+	}
     }
 
 /* Done in calling R function.... 
@@ -282,9 +310,11 @@ void glmm_boot(int *family,
 	}else{
 	    indx = -1;
 	    for (i = 0; i < ext->n_clust; i++){
-		for (j = 0; j < clust[i].n; j++) /* Poisson */
+		for (j = 0; j < clust[i].n; j++){ /* Poisson */
 		    indx++;
-		    clust[i].yw[j] = rpois(weights[j] * predicted[j]);
+		    clust[i].yw[j] = 
+			rpois(weights[indx] * predicted[indx]);
+		}
 	    }
 	}
 
@@ -295,10 +325,10 @@ void glmm_boot(int *family,
 	    for (j = 0; j < clust[i].n; j++){
 		clust[i].ytot += clust[i].yw[j];
 	    }
-	    if (abs(clust[i].ytot) < 0.001){
+	    if (fabs(clust[i].ytot) < 0.001){
 		clust[i].out = -1;
 		clust[i].gamma = -1000.0; /* -inf */
-	    }else if (abs(clust[i].wtot - clust[i].ytot) < 0.001 & 
+	    }else if (fabs(clust[i].wtot - clust[i].ytot) < 0.001 & 
 		      (ext->family <= 1)){
 		clust[i].out = 1;
 		clust[i].gamma = 1000.0; /* +inf */

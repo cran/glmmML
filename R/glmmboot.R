@@ -102,7 +102,16 @@ glmmboot <- function(formula,
                        boot)
     
     res$mixed <- FALSE # ??????????????????
-    res$deviance <- -2 * res$logLik
+
+    if (family$family == "binomial"){
+        res$deviance <- 2 * (sum(Y * log(ifelse(Y == 0, 1, Y/res$fitted)) +
+                                (1-Y) *  log(ifelse(Y == 1, 1,
+                                             (1-Y) / (1 - res$fitted)))))
+    }else{
+        res$deviance <- 2 * sum(Y * log(ifelse(Y == 0, 1, Y / res$fitted)) -
+                             (Y - res$fitted))
+    }
+    ##res$deviance <- -2 * res$logLik
     nvars <- NCOL(X) - 1 + length(unique(cluster))
     res$df.residual <- length(Y) - nvars
     res$aic <- res$deviance + 2 * nvars ## CHECK this !!
