@@ -6,6 +6,7 @@
 #include "fun.h"
 #include "ghq.h"
 
+int laplace; /* 1 = Laplace, 0 = Gauss-Hermite */
 P_fun *P;
 G_fun *G;
 H_fun *H;
@@ -48,6 +49,7 @@ void glmm_ml(int *family,
 	     double *offset,
 	     int *fam_size,
 	     int *n_fam,
+	     int *method,  /* = method, global variable */
 	     int *n_points, /* No. of pts in Gauss-Hermite quadrature */
 	     double *epsilon,
 	     int *maxit,
@@ -107,6 +109,8 @@ void glmm_ml(int *family,
 
     int *conditional;
     int condi = 1;
+
+    laplace = *method; /* 1 = Laplace, 0 = Gauss-Hermite */
 /* This is done to prepare for having conditional as an input parameter */     
     conditional = &condi;
 
@@ -263,14 +267,16 @@ void glmm_ml(int *family,
     *convergence = (fail == 0);
     if (fail){
 	Rprintf("[glmmml] fail = %d\n", fail);
-	error(msg);
+	if (fail == 1) 
+	    Rprintf("Max. No. of iterations reached without convergence");
+	warning(msg);
     }
 /*
     fun1(bdim, b, gr, ext);
 */
     fun2(bdim, b, &Fmin, gr, hess_vec, ext);
 
-    if(*trace){
+    if (*trace){
 	Rprintf("Max log likelihood after vmmin: %f\n", -Fmin);
 	printf("beta: ");
 	for (i = 0; i < bdim; i++){
@@ -343,6 +349,15 @@ void glmm_ml(int *family,
 		printf("\n");
 	    }
 	}
+	if (laplace == 1){
+	    printf("\nMethod is Laplace\n");
+	}else{
+	    if (laplace == 0){
+		printf("Method is Gauss-Hermite\n");
+	    }else{
+		printf("Method is %d\n", laplace);
+	    }
+	}
     }
 
 /* Cancelled for the time being...
@@ -404,7 +419,7 @@ void glmm_ml(int *family,
 		}*/
 	    *convergence = (fail == 0);
 	    if (!convergence){
-		Rprintf("No converǵence...\n");
+		Rprintf("No convergence...\n");
 	    }
 	    boot_log[i] = -Fmin;
 	    if (*trace){

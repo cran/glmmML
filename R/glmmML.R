@@ -17,6 +17,10 @@ glmmML <- function(formula,
                    n.points = 8,
                    boot = 0){
 
+    method <- method[1]
+    if (method == "laplace") method <- "Laplace"
+    if (method == "GHQ") method <- "ghq"
+    if (!(method %in% c("Laplace", "ghq"))) stop("Wrong method")
     if (is.list(control)) {
         if (is.null(control$epsilon))
           control$epsilon <- 1e-08
@@ -126,6 +130,7 @@ glmmML <- function(formula,
                       cluster,
                       offset,
                       family,
+                      method,
                       n.points,
                       control,
                       intercept = ( attr(mt, "intercept") > 0),

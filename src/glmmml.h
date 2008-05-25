@@ -68,6 +68,7 @@ void glmm_ml(int *family,
              double *offset,
              int *fam_size,
              int *n_fam,
+	     int *method,
              int *n_points, /* No. of pts in Gauss-Hermite quadrature */
              double *epsilon,
              int *maxit,

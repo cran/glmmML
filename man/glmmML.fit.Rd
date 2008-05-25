@@ -11,8 +11,9 @@ directly by the user.
 glmmML.fit(X, Y, weights = rep(1, NROW(Y)), cluster.weights = rep(1, NROW(Y)),
 start.coef = NULL, start.sigma = NULL,
 fix.sigma = FALSE,
-cluster = NULL, offset = rep(0, nobs), family = binomial(), n.points =
-1, control = list(epsilon = 1.e-8, maxit = 200, trace = FALSE),
+cluster = NULL, offset = rep(0, nobs), family = binomial(),
+method = 1, n.points = 1,
+control = list(epsilon = 1.e-8, maxit = 200, trace = FALSE),
 intercept = TRUE, boot = 0, prior = 0) 
 }
 %- maybe also `usage' for other objects documented here.
@@ -29,7 +30,8 @@ intercept = TRUE, boot = 0, prior = 0)
   \item{family}{Family of distributions. Defaults to binomial with logit
   link. Other possibilities are binomial with cloglog link and poisson
   with log link.}
-  \item{n.points}{Number of points in the Gauss-Hermite
+\item{method}{Laplace (1) or Gauss-hermite (0)?}
+\item{n.points}{Number of points in the Gauss-Hermite
     quadrature. Default is \code{n.points = 1}, which is equivalent to
     Laplace approximation.}
   \item{control}{Control of the iterations. See \code{\link{glm.control}}.}

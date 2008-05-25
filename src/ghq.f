@@ -97,7 +97,7 @@ C        x(i) = x(i) * 1.41421356237
 C      enddo
 
 C *** New change! (2006-08-04) ***
-C *** A coorection: Make it depend on 'modified'.
+C *** A correction: Make it depend on 'modified'.
       if (modified) then
          do i = 1, n
             w(i) = w(i) * exp(x(i)**2)

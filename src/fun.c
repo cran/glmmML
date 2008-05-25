@@ -8,6 +8,7 @@
 #include <R_ext/Applic.h>
 #include "GB_zeroin.h"
 
+extern int laplace; /* 0 = Gauss-Hermite, 1 = Laplace */
 extern P_fun *P;
 extern G_fun *G;
 extern H_fun *H;
@@ -450,14 +451,18 @@ static double g_m(double u, int m, void *ex){
 
     fam = ex;
 
-    sigu = fam->sigma * u; 
-
-    res = 0.0;
-    for (j = 0; j < fam->n; j++){
-	res += fam->x[m][j] * 
-	    G(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    if (fam->p == m){
+	res = g_s(u, ex);
+    }else{
+	
+	sigu = fam->sigma * u; 
+	
+	res = 0.0;
+	for (j = 0; j < fam->n; j++){
+	    res += fam->x[m][j] * 
+		G(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+	}
     }
-    
     return ( res );
 }
 
@@ -491,16 +496,21 @@ static double g_sm(double u, int m, void *ex){
     Family *fam;
 
     fam = ex;
-
-    sigu = fam->sigma * u; 
-
-    res = 0.0;
-    for (j = 0; j < fam->n; j++){
-	res += fam->x[m][j] * 
-	    H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+   
+    if (fam->p == m){
+	res = g_ss(u, ex);
+    }else{
+	sigu = fam->sigma * u; 
+	
+	res = 0.0;
+	for (j = 0; j < fam->n; j++){
+	    res += fam->x[m][j] * 
+		H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+	}
+	res = res * u;
     }
     
-    return ( res * u );
+    return ( res );
 }
 
 static double g_mk(double u, int m, int k, void *ex){
@@ -512,15 +522,22 @@ static double g_mk(double u, int m, int k, void *ex){
     Family *fam;
 
     fam = ex;
-
-    sigu = fam->sigma * u; 
-
-    res = 0.0;
-    for (j = 0; j < fam->n; j++){
-	res += fam->x[m][j] * fam->x[k][j] * 
-	    H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
-    }
     
+    if ((m == k) && (m == fam->p)){
+	res = g_ss(u, ex);
+    }else if (m == fam->p){
+	res = g_sm(u, k, ex);
+    }else if (k == fam->p){
+	res = g_sm(u, m, ex);
+    }else{
+	sigu = fam->sigma * u; 
+	
+	res = 0.0;
+	for (j = 0; j < fam->n; j++){
+	    res += fam->x[m][j] * fam->x[k][j] * 
+		H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+	}
+    }
     return ( res );
 }
 
@@ -557,15 +574,20 @@ static double g_um(double u, int m, void *ex){
 
     fam = ex;
 
-    sigu = fam->sigma * u; 
-
-    res = 0.0;
-    for (j = 0; j < fam->n; j++){
-	res += fam->x[m][j] * 
-	    H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    if (fam->p == m){
+	res = g_us(u, ex);
+    }else{
+	sigu = fam->sigma * u; 
+	
+	res = 0.0;
+	for (j = 0; j < fam->n; j++){
+	    res += fam->x[m][j] * 
+		H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+	}
+	res = fam->sigma * res;
     }
     
-    return ( fam->sigma * res );
+    return ( res );
 }
 
 static double g_uus(double u, void *ex){
@@ -601,15 +623,20 @@ static double g_uum(double u, int m, void *ex){
 
     fam = ex;
 
-    sigu = fam->sigma * u; 
-
-    res = 0.0;
-    for (j = 0; j < fam->n; j++){
-	res += fam->x[m][j] * 
-	    I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+    if (fam->p == m){
+	res = g_uus(u, ex);
+    }else{
+	sigu = fam->sigma * u; 
+	
+	res = 0.0;
+	for (j = 0; j < fam->n; j++){
+	    res += fam->x[m][j] * 
+		I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]); 
+	}
+	res = R_pow_di(fam->sigma, 2) * res;
     }
     
-    return ( R_pow_di(fam->sigma, 2) * res );
+    return ( res );
 }
 
 static double g_uuu(double u, void *ex){
@@ -653,43 +680,57 @@ static double g_uss(double u, void *ex){
 static double g_usm(double u, int m, void *ex){
 
     int j;
-    double sum1, sum2, sigu;
+    double res, sum1, sum2, sigu;
 
     Family *fam;
 
     fam = ex;
 
-    sigu = fam->sigma * u;
-
-    sum1 = 0.0; sum2 = 0.0;
-    for (j = 0; j < fam->n; j++){
-	sum1 += fam->x[m][j] *
-	    I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
-	sum2 += fam->x[m][j] *
-	    H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+    if (fam->p == m){
+	res = g_uss(u, ex);
+    }else{
+	sigu = fam->sigma * u;
+	
+	sum1 = 0.0; sum2 = 0.0;
+	for (j = 0; j < fam->n; j++){
+	    sum1 += fam->x[m][j] *
+		I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	    sum2 += fam->x[m][j] *
+		H(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	}
+	res = sigu * sum1 + sum2;
     }
-    
-    return (sigu * sum1 + sum2);
+
+    return ( res );
 }
 
 static double g_umk(double u, int m, int k, void *ex){
 
     int j;
-    double sum, sigu;
+    double res, sum, sigu;
 
     Family *fam;
 
     fam = ex;
 
-    sigu = fam->sigma * u;
+    if ((m == k) && (m == fam->p)){
+	res = g_uss(u, ex);
+    }else if (m == fam->p){
+	res = g_usm(u, k, ex);
+    }else if (k == fam->p){
+	res = g_usm(u, m, ex);
+    }else{
+	sigu = fam->sigma * u;
 
-    sum = 0.0;
-    for (j = 0; j < fam->n; j++){
-	sum += fam->x[m][j] * fam->x[k][j] *
-	    I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	sum = 0.0;
+	for (j = 0; j < fam->n; j++){
+	    sum += fam->x[m][j] * fam->x[k][j] *
+		I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	}
+	res = fam->sigma * sum;
     }
-    
-    return (fam->sigma * sum);
+
+    return ( res );
 }
 
 static double g_uuss(double u, void *ex){
@@ -718,43 +759,59 @@ static double g_uuss(double u, void *ex){
 static double g_uusm(double u, int m, void *ex){
 
     int j;
-    double sum1, sum2, sigu;
+    double res, sum1, sum2, sigu;
 
     Family *fam;
 
     fam = ex;
 
-    sigu = fam->sigma * u;
+    if (m == fam->p){
+	res = g_uuss(u, ex);
+    }else{
+	sigu = fam->sigma * u;
 
-    sum1 = 0.0; sum2 = 0.0;
-    for (j = 0; j < fam->n; j++){
-	sum1 += fam->x[m][j] * 
-	    K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
-	sum2 += fam->x[m][j] *
-	    I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	sum1 = 0.0; sum2 = 0.0;
+	for (j = 0; j < fam->n; j++){
+	    sum1 += fam->x[m][j] * 
+		K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	    sum2 += fam->x[m][j] *
+		I(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	}
+	res = sigu * fam->sigma * sum1 + 2.0 * fam->sigma * sum2;
     }
 
-    return(sigu * fam->sigma * sum1 + 2.0 * fam->sigma * sum2);
+    return( res );
 }
 
 static double g_uumk(double u, int m, int k, void *ex){
 
     int j;
-    double sum, sigu;
+    double res, sum, sigu;
 
     Family *fam;
 
     fam = ex;
 
-    sigu = fam->sigma * u;
+    if ((m == k) && (m == fam->p)){
+	res = g_uuss(u, ex);
+    }else if (m == fam->p){
+	res = g_uusm(u, k, ex);
+    }else if (k == fam->p){
+	res = g_uusm(u, m, ex);
+    }else{
 
-    sum = 0.0;
-    for (j = 0; j < fam->n; j++){
-	sum += fam->x[m][j] * fam->x[k][j] *
-	    K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	sigu = fam->sigma * u;
+
+	sum = 0.0;
+	for (j = 0; j < fam->n; j++){
+	    sum += fam->x[m][j] * fam->x[k][j] *
+		K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
+	}
+	
+	res = R_pow_di(fam->sigma, 2) * sum;
     }
 
-    return(R_pow_di(fam->sigma, 2) * sum);
+    return( res );
 }
 
 static double g_uuuu(double u, void *ex){
@@ -800,626 +857,32 @@ static double g_uuus(double u, void *ex){
 static double g_uuum(double u, int m, void *ex){
 
     int j;
-    double sum, s3, sigu;
+    double res, sum, s3, sigu;
 
     Family *fam;
 
     fam = ex;
 
-    s3 = R_pow_di(fam->sigma, 3);
-    sigu = fam->sigma * u;
-
-    sum = 0.0;
-    for (j = 0; j < fam->n; j++){
-	sum += fam->x[m][j] *
-	    K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
-    }
-
-    return(s3 * sum);
-}
-/* u components (second order, first order as vectors! */
-/* We take these as vectors (matrices) too !! */
-/*
-static double u_ss(double u, double s2, double u_s, void *ex){
-
-    return( s2 * (R_pow_di(u_s, 2) * g_uuu(u, ex) + 
-		  2.0 * u_s * g_uus(u, ex) +
-		  g_uss(u, ex)) );
-}
-
-static double u_sm(double u, double s2, double u_s, double *u_m, 
-		   int m, void *ex){
-
-    return( s2 * (u_s * u_m[m] * g_uuu(u, ex) + 
-		  u_s * g_uum(u, m, ex) +
-		  u_m[m] * g_uus(u, ex) +
-		  g_usm(u, m, ex)) );
-}
-
-static double u_mk(double u, double s2, double *u_m, 
-		   int m, int k, void *ex){
-
-    return( s2 * (u_m[k] * u_m[m] * g_uuu(u, ex) + 
-		  u_m[k] * g_uum(u, m, ex) +
-		  u_m[m] * g_uum(u, k, ex) +
-		  g_umk(u, m, k, ex)) );
-}
-*/
-
-/* Log Likelihood components: */
-
-static double l_u(double u, double s2, void *ex){
-
-    return ( 0.5 * s2 * g_uuu(u, ex) + g_u(u, ex) );
-} 
-
-static double l_s(double u, double s2, void *ex){
-
-    return ( 0.5 * s2 * g_uus(u, ex) + g_s(u, ex) );
-} 
-
-static double l_m(double u, double s2, int m, void *ex){
-
-    return ( 0.5 * s2 * g_uum(u, m, ex) + g_m(u, m, ex) );
-} 
-
-static double l_uu(double u, double s2, void *ex){
-    
-    return ( 0.5 * s2 * 
-	     (g_uuuu(u, ex) + s2 * R_pow_di(g_uuu(u, ex), 2)) + 
-	     g_uu(u, ex) ); 
-}
-
-static double l_us(double u, double s2, void *ex){
-    
-    return ( 0.5 * s2 * 
-	     (g_uuus(u, ex) + s2 * g_uuu(u, ex) * g_uus(u, ex)) + 
-	     g_us(u, ex) );
-}
-
-static double l_um(double u, double s2, int m, void *ex){
-    
-    return ( 0.5 * s2 * 
-	     (g_uuum(u, m, ex) + s2 * g_uuu(u, ex) * g_uum(u, m, ex)) + 
-	     g_um(u, m, ex) );
-}
-
-static double l_ss(double u, double s2, void *ex){
-    
-    return ( 0.5 * s2 * 
-	     (g_uuss(u, ex) + s2 * R_pow_di(g_uus(u, ex), 2)) + 
-	     g_ss(u, ex) );  
-}
-
-static double l_sm(double u, double s2, int m, void *ex){
-    
-    return ( 0.5 * s2 * 
-	     (g_uusm(u, m, ex) + s2 * g_uus(u, ex) * g_uum(u, m, ex)) + 
-	     g_sm(u, m, ex) );  
-}
-
-static double l_mk(double u, double s2, int m, int k, void *ex){
-    
-    return ( 0.5 * s2 * 
-	     (g_uumk(u, m, k, ex) + s2 * g_uum(u, m, ex) * g_uum(u, k, ex)) + 
-	     g_mk(u, m, k, ex) );  
-}
-
-/*************** End Laplace fun's ******************************/
-
-static double fun_fam(int one, double *u, void *ex){
-/* Calculates minus the log of the 'family' likelihood */
-    double res, usig;
-    int j;
-    double zero = 0.0;
-    double ett = 1.0;
-    int give_log = 1; /* NOTE! */
-
-    Family *fam;
-
-    fam = ex;
-
-    res = dnorm(*u, zero, ett, give_log);
-
-    usig = *u * fam->sigma;
-    for (j = 0; j < fam->n; j++){
-/* This should be fixed via a parameter 'give_log' to P! */
-	res += P(fam->x_beta[j] + usig, 
-		 fam->yw[j], fam->weights[j]);
-    }
-
-    return(-res);
-}
-
-static void du_fun_fam(int one, double *u, double *gr, void *ex){
-/* Calculates minus the derivative of the log of fun_fam at u */
-    
-    int j;
-    double tmp, usig;
-    Family *fam;
-
-    fam = ex;
-
-    tmp = 0.0;
-    usig = *u * fam->sigma;
-    for (j = 0; j < fam->n; j++) 
-	tmp += G(fam->x_beta[j] + usig, 
-		 fam->yw[j], fam->weights[j]);
-
-    *gr = *u - fam->sigma * tmp;
-}
-
-static void du2_fun_fam(int one, double *u, double *grr, void *ex){
-/* Calculates minus the second derivative of the log of fun_fam at u */
-    
-    int j;
-    double tmp, usig;
-    Family *fam;
-
-    fam = ex;
-
-    tmp = 0.0;
-    usig = *u * fam->sigma;
-    for (j = 0; j < fam->n; j++){ 
-	tmp += H(fam->x_beta[j] + usig, 
-		     fam->yw[j], 
-		     fam->weights[j]);
-	/* Rprintf("[du2_fun_fam] tmp = %f\n", tmp); */
-    }
-
-    *grr = 1.0 - R_pow_di(fam->sigma, 2) * tmp;
-}
-
-static double fun1_fam(int one, double *u, void *ex){
-    /* Calculates the first derivative map beta[m] of */
-    /* minus the log of the 'family' likelihood       */
-    double res, tmp;
-    int j;
-    double zero = 0.0;
-    double ett = 1.0;
-    int give_log = 1; /* NOTE! */
-    int m;
-
-    Family *fam;
-
-    fam = ex;
-
-    m = fam->m;
-
-    res = dnorm(*u, zero, ett, give_log);
-
-    for (j = 0; j < fam->n; j++){
-/* This should be fixed via a parameter 'give_log' to P! */
-	res += P(fam->x_beta[j] + *u * fam->sigma, fam->yw[j],
-		   fam->weights[j]);
-/*	    Rprintf("[fun_fam:] x_beta[%d] = %f\n", j, fam->x_beta[j]); */
-    }
-
-    tmp = 0.0;
-    
-    return(tmp);
-/* This will be continued when we know whether it is worthwhile!!! */
-/* Not used at the moment */
-}
-
-    
-static void int_fun_mean(double *x, 
-			 int n, 
-			 void *ex){
-    /* Calculates one integrand (for one "family") in the expression     */
-    /* of the log likelihood function.                                   */
-    /* it is vectorizing, x is of length n. On input, x is the vector    */
-    /* of points where int_fun should be evaluated, on output x contains */
-    /* the n results.                                                    */
-
-    /* NOTE: x[i] and fam->x[i] are different things here!! */
-
-    double *res;
-    int i, j;
-    double zero = 0.0;
-    double one = 1.0;
-    int give_log = 0;
-
-    Family *fam;
-
-    fam = ex;
-
-    res = Calloc(n, double);
-    for (i = 0; i < n; i++) 
-	res[i] = x[i] * dnorm(x[i], zero, one, give_log);
-
-    for (i = 0; i < n; i++){
-	for (j = 0; j < fam->n; j++){
- 	    res[i] *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
-			fam->yw[j], fam->weights[j]));
-	}
-	/* x[i] = res[i]; Improve by 'memcpy' later */
-    }
-    memcpy(x, res, n * sizeof(double));
-
-    Free(res);
-}
-
-    
-static void int_fun(double *x, 
-		    int n, 
-		    void *ex){
-    /* Calculates one integrand (for one "family") in the expression     */
-    /* of the log likelihood function.                                   */
-    /* it is vectorizing, x is of length n. On input, x is the vector    */
-    /* of points where int_fun should be evaluated, on output x contains */
-    /* the n results.                                                    */
-
-    /* NOTE: x[i] and fam->x[i] are different things here!! */
-
-    double *res;
-    int i, j;
-    double zero = 0.0;
-    double one = 1.0;
-    int give_log = 0;
-
-    Family *fam;
-
-    fam = ex;
-
-    res = Calloc(n, double);
-    for (i = 0; i < n; i++) res[i] = dnorm(x[i], zero, one, give_log);
-
-    for (i = 0; i < n; i++){
-	for (j = 0; j < fam->n; j++){
- 	    res[i] *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
-			fam->yw[j], fam->weights[j]));
-	}
-	/* x[i] = res[i]; Improve by 'memcpy' later */
-    }
-    memcpy(x, res, n * sizeof(double));
-
-    Free(res);
-}
-
-static void int_fun1(double *x, 
-		     int n, 
-		     void *ex){
-    /* Calculates one integrand (for one "family") in the expression     */
-    /* of the partial derivatives wrt                                    */
-    /* 'beta' of the log likelihood function.                            */
-    /* it is vectorizing, x is of length n. On input, x is the vector    */
-    /* of points where int_fun should be evaluated, on output x contains */
-    /* the n results.                                                    */
-    /* NOTE: x[i] and fam->x[i] are different things here!! */
-
-    double *res;
-    int i, j;
-    double zero = 0.0;
-    double one = 1.0;
-    int give_log = 0;
-
-    double tsum;
-    int m;
-
-    Family *fam;
-
-    fam = ex;
-
-    m = fam->m;
-
-    res = Calloc(n, double);
-    for (i = 0; i < n; i++) res[i] = dnorm(x[i], zero, one, give_log);
-
-    for (i = 0; i < n; i++){
-	tsum = 0.0;
-	for (j = 0; j < fam->n; j++){
-	    tsum += fam->x[m][j] * 
-		G(fam->x_beta[j] + fam->sigma * x[i], 
-		  fam->yw[j], fam->weights[j]);
-	}
-	res[i] *= tsum;
-    }
+    if (fam->p == m){
+	res = g_uuus(u, ex);
+    }else{
+	s3 = R_pow_di(fam->sigma, 3);
+	sigu = fam->sigma * u;
 	
-    for (i = 0; i < n; i++){
-	for (j = 0; j < fam->n; j++){ 
-	    res[i] *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
-			fam->yw[j], fam->weights[j]));
+	sum = 0.0;
+	for (j = 0; j < fam->n; j++){
+	    sum += fam->x[m][j] *
+		K(fam->x_beta[j] + sigu, fam->yw[j], fam->weights[j]);
 	}
-	/* x[i] = res[i]; Improve by 'memcpy' later */
+	
+	res = s3 * sum;
     }
-    memcpy(x, res, n * sizeof(double));
-    /* for (i = 0; i < n; i++) Rprintf("x[%d] = %f\n", i, x[i]); */
-    Free(res);
+
+    return(res);
 }
 
-static void int_fun1s(double *x, 
-		      int n, 
-		      void *ex){
-    /* NOTE: x[i] and fam->x[i] are different things here!! */
+/*************** End "Laplace" (and Gauss-hermite) fun's ***************/
 
-    /* Calculates one integrand (for one "family") in the expression     */
-    /* of the partial derivatives wrt                                    */
-    /* 'log(sigma)' of the log likelihood function.                      */
-    /* it is vectorizing, x is of length n. On input, x is the vector    */
-    /* of points where int_fun should be evaluated, on output x contains */
-    /* the n results.                                                    */
-    double *res;
-    int i, j;
-    double zero = 0.0;
-    double one = 1.0;
-    int give_log = 0;
-
-    double tsum;
-
-    Family *fam;
-
-    fam = ex;
-
-    res = Calloc(n, double);
-    for (i = 0; i < n; i++) res[i] = dnorm(x[i], zero, one, give_log);
-
-    for (i = 0; i < n; i++){
-	tsum = 0.0;
-	for (j = 0; j < fam->n; j++){
-	    tsum += G(fam->x_beta[j] + fam->sigma * x[i], 
-		      fam->yw[j], fam->weights[j]);
-	}
-	res[i] *= tsum * x[i]; /* NOTE (no sigma)!!!!!!! */
-	
-    }
-	
-    for (i = 0; i < n; i++){
-	for (j = 0; j < fam->n; j++){ 
-	    res[i] *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
-			fam->yw[j], fam->weights[j]));
-	}
-	/* x[i] = res[i]; Improve by 'memcpy' later */
-    }
-    memcpy(x, res, n * sizeof(double));
-
-    Free(res);
-}
-
-static void int_fun2(double *x, 
-		     int n, 
-		     void *ex){
-    /* Calculates one integrand (for one "family") in the expression     */
-    /* of the partial second derivatives (hessian) wrt                   */
-    /* 'beta[m], beta[k]' of the log likelihood function.                */
-    /* it is vectorizing, x is of length n. On input, x is the vector    */
-    /* of points where int_fun should be evaluated, on output x contains */
-    /* the n results.                                                    */
-    /* NOTE: x[i] and fam->x[i] are different things here!! */
-
-    double *res;
-    int i, j;
-    double zero = 0.0;
-    double one = 1.0;
-    int give_log = 0;
-
-    double *g1sum, *g2sum, *hsum;
-    double tmp;
-    int m, k;
-
-    Family *fam;
-
-    fam = ex;
-
-    m = fam->m;
-    k = fam->k;
-
-    res = Calloc(n, double);
-    g1sum = Calloc(n, double);
-    g2sum = Calloc(n, double);
-    hsum = Calloc(n, double);
-
-    for (i = 0; i < n; i++) res[i] = dnorm(x[i], zero, one, give_log);
-
-    /* First G-sum (m) */
-    for (i = 0; i < n; i++){
-	tmp = 0.0;
-	for (j = 0; j < fam->n; j++){
-	    tmp += fam->x[m][j] * 
-		G(fam->x_beta[j] + fam->sigma * x[i], 
-		  fam->yw[j], fam->weights[j]);
-	}
-	g1sum[i] = tmp;
-    }
-	
-    /* Second G-sum (k) */
-    for (i = 0; i < n; i++){
-	tmp = 0.0;
-	for (j = 0; j < fam->n; j++){
-	    tmp += fam->x[k][j] * 
-		G(fam->x_beta[j] + fam->sigma * x[i], 
-		  fam->yw[j], fam->weights[j]);
-	}
-	g2sum[i] = tmp;
-    }
-	
-    /* H-sum (m, k) */
-    for (i = 0; i < n; i++){
-	tmp = 0.0;
-	for (j = 0; j < fam->n; j++){
-	    tmp += 
-		fam->x[m][j] * 
-		fam->x[k][j] * 
-		H(fam->x_beta[j] + fam->sigma * x[i], 
-		      fam->yw[j], fam->weights[j]);
-	}
-	hsum[i] = tmp;
-    }
-	
-    for (i = 0; i < n; i++){
-	tmp = 1.0;
-	for (j = 0; j < fam->n; j++){
-	    tmp *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
-		     fam->yw[j], fam->weights[j]));
-	}
-	res[i] *= tmp * (g1sum[i] * g2sum[i] + hsum[i]);
-	/* x[i] = res[i];  Improve by 'memcpy' later */
-    }
-
-    memcpy(x, res, n * sizeof(double));
-
-    Free(res);
-    Free(g1sum);
-    Free(g2sum);
-    Free(hsum);
-}
-
-static void int_fun2s(double *x, 
-		     int n, 
-		     void *ex){
-    /* Calculates one integrand (for one "family") in the expression     */
-    /* of the partial second derivatives (hessian) wrt                   */
-    /* 'beta[m], log(sigma)' of the log likelihood function.             */
-    /* it is vectorizing, x is of length n. On input, x is the vector    */
-    /* of points where int_fun should be evaluated, on output x contains */
-    /* the n results.                                                    */
-    /* NOTE: x[i] and fam->x[i] are different things here!! */
-
-    double *res;
-    int i, j;
-    double zero = 0.0;
-    double one = 1.0;
-    int give_log = 0;
-
-    double *g1sum, *g2sum, *hsum;
-    double tmp;
-
-    int m;
-
-    Family *fam;
-
-    fam = ex;
-
-    m = fam->m;
-
-    res = Calloc(n, double);
-    g1sum = Calloc(n, double);
-    g2sum = Calloc(n, double);
-    hsum = Calloc(n, double);
-
-    for (i = 0; i < n; i++) res[i] = dnorm(x[i], zero, one, give_log);
-
-    /* First G-sum (m) */
-    for (i = 0; i < n; i++){
-	tmp = 0.0;
-	for (j = 0; j < fam->n; j++){
-	    tmp += fam->x[m][j] * 
-		G(fam->x_beta[j] + fam->sigma * x[i], 
-		  fam->yw[j], fam->weights[j]);
-	}
-	g1sum[i] = tmp;
-}
-	
-    /* Second G-sum (sigma) */
-    for (i = 0; i < n; i++){
-	tmp = 0.0;
-	for (j = 0; j < fam->n; j++){
-	    tmp += G(fam->x_beta[j] + fam->sigma * x[i], 
-		     fam->yw[j], fam->weights[j]);
-	}
-	g2sum[i] = tmp;
-    }
-	
-    /* H-sum (m, k) */
-    for (i = 0; i < n; i++){
-	tmp = 0.0;
-	for (j = 0; j < fam->n; j++){
-	    tmp += 
-		fam->x[m][j] * 
-		H(fam->x_beta[j] + fam->sigma * x[i], 
-		      fam->yw[j], fam->weights[j]);
-	}
-	hsum[i] = tmp;
-    }
-	
-    for (i = 0; i < n; i++){
-	tmp = 1.0;
-	for (j = 0; j < fam->n; j++){
-	    tmp *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
-		     fam->yw[j], fam->weights[j]));
-	}
-	res[i] *= tmp * x[i] * /* fam->sigma *  NOTE!!!!! */
-	    (g1sum[i] * g2sum[i] + hsum[i]);
-	/* x[i] = res[i];  Improve by 'memcpy' later */
-    }
-
-    memcpy(x, res, n * sizeof(double));
-
-    Free(res);
-    Free(g1sum);
-    Free(g2sum);
-    Free(hsum);
-}
-
-static void int_funss(double *x, 
-		      int n, 
-		      void *ex){
-    /* Calculates one integrand (for one "family") in the expression     */
-    /* of the partial second derivatives (hessian) wrt                   */
-    /* 'log(sigma)' of the log likelihood function.                      */
-    /* it is vectorizing, x is of length n. On input, x is the vector    */
-    /* of points where int_fun should be evaluated, on output x contains */
-    /* the n results.                                                    */
-    /* NOTE: x[i] and fam->x[i] are different things here!! */
-
-    double *res;
-    int i, j;
-    double zero = 0.0;
-    double one = 1.0;
-    int give_log = 0;
-
-    double *gsum, *hsum;
-    double tmp;
-
-    Family *fam;
-
-    fam = ex;
-
-    res = Calloc(n, double);
-    gsum = Calloc(n, double);
-    hsum = Calloc(n, double);
-
-    for (i = 0; i < n; i++) res[i] = dnorm(x[i], zero, one, give_log);
-
-    /* G-sum (sigma) */
-    for (i = 0; i < n; i++){
-	tmp = 0.0;
-	for (j = 0; j < fam->n; j++){
-	    tmp += G(fam->x_beta[j] + fam->sigma * x[i], 
-		     fam->yw[j], fam->weights[j]);
-	}
-	gsum[i] = tmp;
-    }
-	
-    /* H-sum (m, k) */
-    for (i = 0; i < n; i++){
-	tmp = 0.0;
-	for (j = 0; j < fam->n; j++){
-	    tmp += 
-		H(fam->x_beta[j] + fam->sigma * x[i], 
-		      fam->yw[j], fam->weights[j]);
-	}
-	hsum[i] = tmp;
-    }
-	
-    for (i = 0; i < n; i++){
-	tmp = 1.0;
-	for (j = 0; j < fam->n; j++){
-	    tmp *= exp(P(fam->x_beta[j] + x[i] * fam->sigma,
-		     fam->yw[j], fam->weights[j]));
-	}
-	res[i] *= x[i] *  tmp *          /* NOTE !!!!!!!!!!!! */
-	    (gsum[i] * (1.0 + x[i] * gsum[i]) +
-	     x[i] * hsum[i]);
-    	/* x[i] = res[i];  Improve by 'memcpy' later */
-    }
-
-    memcpy(x, res, n * sizeof(double));
-
-    Free(res);
-    Free(gsum);
-    Free(hsum);
-}
 
 static void update(int level,
 		   int p, 
@@ -1437,7 +900,7 @@ static void update(int level,
     double *hb = NULL;
     double *hbb = NULL; /* (p+1) x (p+1) */
     double sigma;
-    double tmp, tmp2;
+    double tmp, tmp1, tmp2;
     int i, m, k;
 
     /* For integrate */
@@ -1498,10 +961,6 @@ static void update(int level,
     u = Calloc(n_points, double);
     wght = Calloc(n_points, double);
 
-/*
-    u = zeros;
-    wght = wc;
-*/
     for (i = 0; i < n_points; i++){
 /* Should be moved to 'ghq.f' after testing! DONE now!!*/
 	wght[i] = wc[i]; /* * exp(R_pow_di(zeros[i], 2)); */
@@ -1531,58 +990,31 @@ static void update(int level,
     tmp /= (double)fam->n;
     if (fabs(tmp) < 1.e-16 || fabs(fam->sigma) < 1.e-16) u_hat = 0;
     else u_hat = -tmp / fam->sigma; /* Start value for u_hat */
-/*
-    if (fam->sigma > 1000.0){ 
-	Rprintf("[fun] u_hat = %f\n", u_hat); 
-	Rprintf("[fun] sigma = %f\n", fam->sigma); 
-	Rprintf("[fun:] Start value to vmmin: %f\n", tmp);
-    }
-*/
-    tmp = fun_fam(one, &u_hat, ex);
-    /* if (n_points == 1){ */
-	ax = -1.0;
-	bx = -ax;
-	while (g_u(ax, ex) * g_u(bx, ex) >= 0){
-	    ax = 2.0 * ax;
-	    bx = 2.0 * bx;
-	}
-	u_hat = GB_zeroin(ax, bx, g_u, ex, &reltol, &maxit);
-	/* Rprintf("u_hat = %f\n", u_hat); */
-/* 
-	vmmin(one, &u_hat, &fu, g, g_u, maxit, trace,
-	      &mask, abstol, reltol, nREPORT, 
-	      ex, &fncount, &grcount, &fail);
-*/
-/*
-    }else{
-	vmax = vmaxget();
-	vmmin(one, &u_hat, &fu, fun_fam, du_fun_fam, maxit, trace,
-	      &mask, abstol, reltol, nREPORT, 
-	      ex, &fncount, &grcount, &fail);
-	vmaxset(vmax);
-    }
-*/
-/*    if (fail) Rprintf("[update] fail = %d\n", fail); */ 
 
-/*    if (n_points == 1){ */ 
-/*	du2_fun_fam(one, &u_hat, &tmp, ex); */
-	gu = g_u(u_hat, ex);
-	guu = g_uu(u_hat, ex);
-	if (guu >= 0.0) 
-	    error("[update:] Second derivative non-negative at max!");
-	sigma_hat = sqrt(-1.0 / guu);
-/*    }else{ */
-	/* sigma_hat = 1.0; */ /* NOTE!!! OBSERVE !!!!!! */
-/*    }*/
+    /* tmp = fun_fam(one, &u_hat, ex); */
+    tmp = g(u_hat, ex);
+
+    ax = -1.0;
+    bx = -ax;
+    while (g_u(ax, ex) * g_u(bx, ex) >= 0){
+	ax = 2.0 * ax;
+	bx = 2.0 * bx;
+    }
+    u_hat = GB_zeroin(ax, bx, g_u, ex, &reltol, &maxit);
+    
+    gu = g_u(u_hat, ex);
+    guu = g_uu(u_hat, ex);
+    if (guu >= 0.0) 
+	error("[update:] Second derivative non-negative at max!");
+    sigma_hat = sqrt(-1.0 / guu);
+    
     sigma2_hat = R_pow_di(sigma_hat, 2);
     
     for (i = 0; i < n_points; i++){
 	u[i] = M_SQRT2 * sigma_hat * zeros[i] + u_hat;
-	/* Rprintf("u[%d] = %f\n", i, u[i]); */
     }
     *post_mode = u_hat;
 
-    /* Rprintf("u_hat = %f, sigma_hat = %f\n", u_hat, sigma_hat);  */
 /**********************************************************************/    
 /* Calculate  h  for the loglik: */
     
@@ -1595,8 +1027,8 @@ static void update(int level,
 
 /* GHQ: */
     
-    if (n_points >= 2){
-
+    if (!laplace){
+	
 	h = 0.0;
 	for (i = 0; i < n_points; i++){
 	    h +=  wght[i] * exp(g(u[i], ex));
@@ -1606,24 +1038,6 @@ static void update(int level,
 	*loglik += 
 	    fam->cluster_weight * 
 	    (0.5 * M_LN2 + log(sigma_hat) + log(h));
-
-/*  OLD way:
-	h = 0.0;
-	for (i = 0; i < n_points; i++){
-	    tmp = u[i];
-	    tmp2 = tmp;
-	    int_fun(&tmp2, one, ex);
-	    tmp2 *= wght[i];
-	    h += tmp2;
-	}
-	
-	h = sigma_hat * M_SQRT2 * h;
-	if (h <= 0){
-	    error("Unable do get likelihood function POSITIVE!!!!!!!!!\n");
-	}
-
-	*loglik += log(h);
-	*/
 
     }else{ /* Laplace */
 	 *loglik += 
@@ -1645,13 +1059,14 @@ static void update(int level,
 
 /* level >= 1 */
 
-    u_m = Calloc(p, double); /* must be changed for GHQ (n_points > 1)!! */
+    u_m = Calloc(p + 1, double); /* must be changed for GHQ (n_points > 1)!! */
 
     for (i = 0; i < p; i++) 
 	u_m[i] = sigma2_hat * g_um(u_hat, i, ex);
     u_s = sigma2_hat * g_us(u_hat, ex);
+    u_m[p] = u_s;
 
-    sh_m = Calloc(p, double); /* must be changed for GHQ (n_points > 1)!! */
+    sh_m = Calloc(p + 1, double); /* must be changed for GHQ (n_points > 1)!! */
 
     guuu = g_uuu(u_hat, ex);
     for (i = 0; i < p; i++) 
@@ -1659,7 +1074,7 @@ static void update(int level,
 	    (u_m[i] * guuu + g_uum(u_hat, i, ex)); 
     sh_s = 0.5 * R_pow_di(sigma_hat, 3) * 
 	(u_s * guuu + g_uus(u_hat, ex));
-
+    sh_m[p] = sh_s;
 /*******************************************************************/
 
     hb = Calloc((p + 1), double);
@@ -1668,8 +1083,8 @@ static void update(int level,
     for (m = 0; m <= p; m++){ /* hb[m]; note w = log(sigma) INCLUDED! */
 	if (m < p){
 
-	    if (n_points >= 2){
-
+/*	    if (n_points >= 2){ */
+	    if (!laplace){
 		tmp = 0.0;
 		for (i = 0; i < n_points; i++){
 		    tmp2 = (zeros[i] * sh_m[m] * M_SQRT2 + u_m[m]) *
@@ -1677,19 +1092,6 @@ static void update(int level,
 		    tmp += tmp2 * wght[i] * exp(g(u[i], ex));
 		}
 		hb[m] = tmp;
-
-/*  OLD way:
-		hb[m] = 0.0;
-		fam->m = m;
-		for(i = 0; i < n_points; i++){
-		    tmp = u[i];
-		    
-		    tmp2 = tmp;
-		    int_fun1(&tmp2, one, ex);
-		    hb[m] += tmp2 * wght[i];
-		}
-		hb[m] = sigma_hat * M_SQRT2 * hb[m];
-*/
 	    }else{ /* Laplace */
 		hb[m] = u_m[m] * gu + g_m(u_hat, m, ex);
 	    }  
@@ -1697,7 +1099,8 @@ static void update(int level,
 	}else{ /* p == m */
 
 	    /* GHQ: */
-	    if (n_points >= 2){
+	    /*   if (n_points >= 2){ */
+	    if (!laplace){
 		tmp = 0.0;
 		for (i = 0; i < n_points; i++){
 		    tmp2 = (zeros[i] * sh_s * M_SQRT2 + u_s) *
@@ -1706,28 +1109,16 @@ static void update(int level,
 		}
 		hb[m] = tmp;
 		
-/*
-		hb[m] = 0.0;
-		for(i = 0; i < n_points; i++){
-		    tmp = u[i];
-		    
-		    tmp2 = tmp;
-		    int_fun1s(&tmp2, one, ex);
-		    hb[m] += tmp2 * wght[i];
-		}
-		hb[m] = sigma_hat * M_SQRT2 * hb[m];
-*/
-/*		Rprintf("hb[%d] = %f\n", m, hb[m]); */
 	    }else{ /* Laplace */
 		hb[m] = u_s * gu + g_s(u_hat, ex);
-/*		Rprintf("hb[%d] = %f\n", m, hb[m]); */
 	    }
 	}
     }
 
     
-    /* Add into first derivatives: KOLLA HÄR!??!!*/
-    if (n_points == 1){  
+    /* Add into first derivatives: KOLLA HERE!??!!*/
+
+    if (laplace){
 	for (m = 0; m < p; m++){
 	    score[m] += 
 		fam->cluster_weight * 
@@ -1760,23 +1151,25 @@ static void update(int level,
 
 /* level >= 2 */
 
-    u_sm = Calloc(p, double);
-    u_mkvec = Calloc(p * p, double);
-    u_mk = Calloc(p, double *);
-    for (m = 0; m < p; m++){
-	u_mk[m] = u_mkvec + m * p;
+    u_sm = Calloc(p + 1, double);
+    u_mkvec = Calloc((p + 1) * (p + 1), double);
+    u_mk = Calloc(p + 1, double *);
+    for (m = 0; m <= p; m++){
+	u_mk[m] = u_mkvec + m * (p + 1);
     }
 
     u_ss = sigma2_hat * (R_pow_di(u_s, 2) * guuu + 
 			 2.0 * u_s * g_uus(u_hat, ex) +
 			 g_uss(u_hat, ex));
+    u_mk[p][p] = u_ss;
     /* Rprintf("u_ss = %f\n", u_ss); */
     for (m = 0; m < p; m++){
 	u_sm[m] = sigma2_hat * (u_s * u_m[m] * guuu + 
 				u_s * g_uum(u_hat, m, ex) +
 				u_m[m] * g_uus(u_hat, ex) +
-				g_usm(u_hat, m, ex)); 
-
+				g_usm(u_hat, m, ex));
+	u_mk[m][p] = u_sm[m];
+	u_mk[p][m] = u_sm[m];
 	for (k = 0; k < p; k++){
 	    u_mk[m][k] = sigma2_hat * (u_m[k] * u_m[m] * guuu + 
 				       u_m[k] * g_uum(u_hat, m, ex) +
@@ -1787,11 +1180,11 @@ static void update(int level,
     }
 /*    for (m = 0; m < p; m++)Rprintf("u_sm[%d] = %f\n", m, u_sm[m]); */
 
-    sh_sm = Calloc(p, double);
-    sh_mkvec = Calloc(p * p, double);
-    sh_mk = Calloc(p, double *);
-    for (m = 0; m < p; m++){
-	sh_mk[m] = sh_mkvec + m * p;
+    sh_sm = Calloc(p + 1, double);
+    sh_mkvec = Calloc((p + 1) * (p + 1), double);
+    sh_mk = Calloc(p + 1, double *);
+    for (m = 0; m <= p; m++){
+	sh_mk[m] = sh_mkvec + m * (p + 1);
     }
 
     guuuu = g_uuuu(u_hat, ex);
@@ -1802,6 +1195,7 @@ static void update(int level,
 	(u_ss * guuu + u_s *u_s * guuuu + 
 	 u_s * g_uuus(u_hat, ex) + u_s * g_uuus(u_hat, ex) + 
 	 g_uuss(u_hat, ex));
+    sh_mk[p][p] = sh_ss;
 
     for (m = 0; m < p; m++){
 	sh_sm[m] = 0.75 * R_pow(sigma_hat, 5) * 
@@ -1811,6 +1205,8 @@ static void update(int level,
 	    (u_sm[m] * guuu + u_s *u_m[m] * guuuu + 
 	     u_s * g_uuum(u_hat, m, ex) + u_m[m] * g_uuus(u_hat, ex) + 
 	     g_uusm(u_hat, m, ex));
+	sh_mk[m][p] = sh_sm[m];
+	sh_mk[p][m] = sh_sm[m];
 	for (k = 0; k < p; k++){
 	    sh_mk[m][k] = 0.75 * R_pow(sigma_hat, 5) * 
 	    (u_m[m] * guuu + g_uum(u_hat, m, ex)) *
@@ -1828,100 +1224,67 @@ static void update(int level,
     hbb = Calloc((p + 1) * (p + 1), double);
 
     /* First the pxp matrix of 'coefficients': */
-    if (n_points >= 2){
-	for (m = 0; m < p; m++){
+    /* Now: Everything at once!! (2008-05-24) */
+    if (!laplace){
+	for (m = 0; m <= p; m++){
 	    for (k = 0; k <= m; k++){
 		
 		hbb[m + k * (p + 1)] = 0.0;
 		fam->m = m;
 		fam->k = k;
 		for(i = 0; i < n_points; i++){
-		    tmp = u[i];
-		    tmp2 = tmp;
-		    int_fun2(&tmp2, one, ex);
-		    hbb[m + k * (p + 1)] += tmp2 * wght[i];
+
+		    tmp = u_mk[m][k] + M_SQRT2 * sh_mk[m][k] * zeros[i];
+		    tmp1 = u_m[m] + M_SQRT2 * sh_m[m] * zeros[i];
+		    tmp2 = u_m[k] + M_SQRT2 * sh_m[k] * zeros[i];
+
+		    hbb[m + k * (p + 1)] += wght[i] * (
+			(tmp * g_u(u[i], ex) + 
+			tmp1 * (g_um(u[i], k, ex) + tmp2 * g_uu(u[i], ex)) +
+			tmp2 * g_um(u[i], m, ex) + g_mk(u[i], m, k, ex) 
+			) * exp(g(u[i], ex)) +
+			(tmp1 * g_u(u[i], ex) + g_m(u[i], m, ex)) *
+			(tmp2 * g_u(u[i], ex) + g_m(u[i], k, ex)) *
+			exp(g(u[i], ex))
+			);
+						     
 		}
-		hbb[m + k * (p + 1)] = sigma_hat * sqrt(2) * 
-		    hbb[m + k * (p + 1)];
 		
 	    }
 	}
     }else{ /* Laplace 'complete' */
-	for (m = 0; m < p; m++){
+	for (m = 0; m <= p; m++){
 	    for (k = 0; k <= m; k++){
 		fam->m = m;
 		fam->k = k;
-		hbb[m + k * (p + 1)] = 
-		    l_mk(u_hat, sigma2_hat, m, k, ex) +
+		hbb[m + k * (p + 1)] =
+		    (sh_mk[m][k] * sigma_hat - sh_m[m] * sh_m[k]) /
+		    sigma2_hat +
+		    u_mk[m][k] * gu +
+		    u_m[m] * (u_m[k] * guu + g_um(u_hat, k, ex)) +
+		    u_m[k] * g_um(u_hat, m, ex) + 
+		    g_mk(u_hat, m, k, ex);		    
+		    /*    l_mk(u_hat, sigma2_hat, m, k, ex) +
 		    l_u(u_hat, sigma2_hat, ex) * 
 		    u_mk[m][k] +
 		    l_uu(u_hat, sigma2_hat, ex) * u_m[m] * u_m[k] +
 		    l_um(u_hat, sigma2_hat, m, ex) * u_m[k] +
 		    l_um(u_hat, sigma2_hat, k, ex) * u_m[m];
+		    */
 	    }
 	}
-    }
-    /* Then the "beta[m] with beta[p] = log(sigma), m = 0,...,(p-1) */
-    m = p;
-
-    if (n_points >= 2){
-	for (k = 0; k < m; k++){ /* Changed k <= m --> k < m */ 
-	    fam->m = k;
-	    hbb[m + k * (p + 1)] = 0.0;
-	    for(i = 0; i < n_points; i++){
-		tmp = u[i];
-		tmp2 = tmp;
-		int_fun2s(&tmp2, one, ex);
-		hbb[m + k * (p + 1)] += tmp2 * wght[i];
-	    }
-	    hbb[m + k * (p + 1)] = sigma_hat * sqrt(2) * 
-		hbb[m + k * (p + 1)];
-	}
-    }else{ /* Laplace */
-	for (k = 0; k < m; k++){
-	    fam->m = k; /* Necessary ? */
-	    hbb[m + k * (p + 1)] = 
-		l_sm(u_hat, sigma2_hat, k, ex) +
-		l_u(u_hat, sigma2_hat, ex) * u_sm[k] +
-		l_uu(u_hat, sigma2_hat, ex) * u_s * u_m[k] +
-		l_us(u_hat, sigma2_hat, ex) * u_m[k] +
-		l_um(u_hat, sigma2_hat, k, ex) * u_s;
-		
-	}
-    }
-
-    /* And finally beta[p] with beta[p] (AKA log(sigma) = w): */
-    k = p;
-
-    if (n_points >= 2){
-
-	hbb[m + k * (p + 1)] = 0.0;
-	
-	for(i = 0; i < n_points; i++){
-	    tmp = u[i];
-	    tmp2 = tmp;
-	    int_funss(&tmp2, one, ex);
-	    hbb[m + k * (p + 1)] += tmp2 * wght[i];
-	}
-	hbb[m + k * (p + 1)] = sigma_hat * sqrt(2) * 
-	    hbb[m + k * (p + 1)];
-	/* Rprintf("hbb[%d] = %f------------\n", 
-		m + k * (p + 1), hbb[m + k * (p + 1)]);
-	*/
-    }else{ /* Laplace */
-	hbb[m + k * (p + 1)] = 
-	    l_ss(u_hat, sigma2_hat, ex) +
-	    l_u(u_hat, sigma2_hat, ex) * u_ss +
-	    l_uu(u_hat, sigma2_hat, ex) * u_s * u_s +
-	    2.0 * l_us(u_hat, sigma2_hat, ex) * u_s;
     }
 
    /* Now, add it into the hessian (lower triangle): */
-    if (n_points >= 2){
+    /* if (n_points >= 2){ */
+    if (!laplace){
 	for (m = 0; m <= p; m++){
 	    for (k = 0; k <= m; k++){
 		hessian[m + k * (p+1)] += 
 		    fam->cluster_weight * (
+		    (sh_mk[m][k] * sigma_hat - sh_m[m] * sh_m[k]) /
+		    sigma2_hat +
+
 		    hbb[m + k * (p+1)] / h  -   
 		    (hb[m] / h) * (hb[k] / h)); /* 0 at the solution? No!!! */
 	    }
@@ -1930,8 +1293,9 @@ static void update(int level,
 	for (m = 0; m <= p; m++){
 	    for (k = 0; k <= m; k++){
 		hessian[m + k * (p+1)] += 
-		    fam->cluster_weight * (hbb[m + k * (p+1)]); /* - */    
-		    /* (hb[m]) * (hb[k]) */;  /* 0 at the solution? No!!! */
+		    fam->cluster_weight * (hbb[m + k * (p+1)]); /* - */     
+		/*  hb[m] * hb[k]);  */
+/* 0 at the solution? No!!! */
 	    }
 	}
     }
