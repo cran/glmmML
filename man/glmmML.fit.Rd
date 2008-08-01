@@ -30,7 +30,7 @@ intercept = TRUE, boot = 0, prior = 0)
   \item{family}{Family of distributions. Defaults to binomial with logit
   link. Other possibilities are binomial with cloglog link and poisson
   with log link.}
-\item{method}{Laplace (1) or Gauss-hermite (0)?}
+\item{method}{Laplace (1) or Gauss-Hermite (0)?}
 \item{n.points}{Number of points in the Gauss-Hermite
     quadrature. Default is \code{n.points = 1}, which is equivalent to
     Laplace approximation.}
@@ -47,7 +47,10 @@ intercept = TRUE, boot = 0, prior = 0)
 \value{
   A list. For details, see the code, and \code{glmmML}.
 }
-\references{\enc{Broström}{Bridgewater} (2003)}
+\references{\enc{Broström}{Bridgewater} (2008).  Generalized linear
+  models with clustered   data: The glmmML
+  package. \url{http://tal.stat.umu.se/~gb/glmmML/glmmML_0.81-2.pdf}  
+ }
 \author{\enc{Göran Broström}{George Bridgewater}}
 %\note{The profiling method is very fast, compared to \code{glmm} and
 %  \code{glmmPQL}} 
