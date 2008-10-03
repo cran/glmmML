@@ -5,7 +5,7 @@
 \title{Generalized Linear Models with random intercept}
 \description{
 Fits GLMs with random intercept by Maximum Likelihood and numerical
-integration via adaptive Laplace and Gauss-Hermite quadrature.
+integration via Gauss-Hermite quadrature.
 }
 \usage{
 glmmML(formula, family = binomial, data, cluster, weights,
@@ -57,10 +57,11 @@ Possible choices are "gaussian" (default), "logistic", and "cauchy".}
     \code{boot = 2000}.}
 }
 \details{The integrals in the log likelihood function are evaluated by the
-Laplace approximation (default) or Gauss-Hermite quadrature. Both
-methods are now fully adaptive.
+Laplace approximation (default) or Gauss-Hermite quadrature. The latter
+is now fully adaptive; however, only approximate estimates of variances
+are available for the Gauss-Hermite (n.points > 1) method.
 
-For the binomial families, the response may be a two-column matrix, see
+For the binomial families, the response can be a two-column matrix, see
 the help page for glm for details.}
 \value{
   The return value is a list, an object of class 'glmmML'. The components are:
@@ -89,9 +90,8 @@ the help page for glm for details.}
   \item{prior}{Which prior was used?}
   \item{call}{The function call}
 }
-\references{Broström, G. (2008). Generalized linear models with clustered
-  data: The glmmML
-  package. \url{http://tal.stat.umu.se/~gb/glmmML/glmmML_0.81-2.pdf}  
+\references{Broström (2003). Generalized linear models with random
+  intercepts. \url{http://www.stat.umu.se/forskning/reports/glmmML.pdf}
  }
 \author{\enc{Göran Broström}{George Bridgewater}}
 \note{The optimization may not converge with

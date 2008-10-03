@@ -296,7 +296,7 @@ void glmm_boot(int *family,
     for (rep = 0; rep < *boot; rep++){
 	if (*trace){
 	    if ((rep / 10) * 10 == rep)
-		printf("********************* Replicate No. No. %d\n", i);
+		printf("********************* Replicate No. %d\n", rep);
 	}
 	if (*family <= 1){ /* Bernoulli */
 	    indx = -1;
@@ -340,7 +340,7 @@ void glmm_boot(int *family,
 
 	if (!ant_fam_out){
 	    /* Rprintf("Only trivial CLUSTERS!!!\n"); */
-	    boot_log[i] = 0.0;
+	    boot_log[rep] = 0.0;
 	    if (0.0 >= *loglik) upper++;
 	}else{
 
@@ -351,14 +351,14 @@ void glmm_boot(int *family,
 	    for ( j = 0; j < *p; j++) b[j] = 0.0;
 	
 	    if ( R_FINITE( tmp = bfun(*p, b, ext) ) ){
-		vmax = vmaxget();
+	        vmax = vmaxget();
 		vmmin(*p, b, &Fmin,
 		      bfun, bfun_gr, *maxit, *trace,
 		      mask, abstol, reltol, nREPORT,
 		      ext, &fncount, &grcount, &fail);
 		vmaxset(vmax);
 		*convergence = (fail == 0);
-		boot_log[i] = -Fmin;
+		boot_log[rep] = -Fmin;
 		if (-Fmin >= *loglik) upper++;
 	    }else{
 		warning("Infinite start value to vmmin");
@@ -386,6 +386,7 @@ void glmm_boot(int *family,
 	Free(clust[i].lin);
     }
 
+    Free(clust);
     Free(ext);
 
     Free(mask);
