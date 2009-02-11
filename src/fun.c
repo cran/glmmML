@@ -1014,6 +1014,7 @@ static void update(int level,
 	u[i] = M_SQRT2 * sigma_hat * zeros[i] + u_hat;
     }
     *post_mode = u_hat;
+    /* *post_mode = u_hat * sigma_hat;  Changed back 2009-02-11, Version 0.81-4. */
 
 /**********************************************************************/    
 /* Calculate  h  for the loglik: */

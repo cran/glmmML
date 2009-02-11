@@ -1,10 +1,10 @@
 glmmML.fit <- function (X, Y,
                         weights = rep(1, NROW(Y)),
                         cluster.weights = rep(1, NROW(Y)),
-                        start.coef = NULL, 
+                        start.coef = NULL,
                         start.sigma = NULL,
                         fix.sigma = FALSE,
-                        cluster = NULL,                        
+                        cluster = NULL,
                         offset = rep(0, nobs),
                         family = binomial(),
                         method = 1,
@@ -26,7 +26,7 @@ glmmML.fit <- function (X, Y,
     else {
         stop("control must be a list")
     }
-                            
+
     X <- as.matrix(X)
     conv <- FALSE
     nobs <- NROW(Y)
@@ -58,16 +58,16 @@ glmmML.fit <- function (X, Y,
     }
     p <- NCOL(X)
     nvars <- p + as.integer(!fix.sigma)
-    
-    if (is.null(offset)) 
+
+    if (is.null(offset))
       offset <- rep(0, nobs)
     variance <- family$variance
     dev.resids <- family$dev.resids
     aic <- family$aic
     linkinv <- family$linkinv
     mu.eta <- family$mu.eta
-  
-    if (!is.function(variance) || !is.function(linkinv)) 
+
+    if (!is.function(variance) || !is.function(linkinv))
       stop("illegal `family' argument")
 
     if (is.null(start.coef)){
@@ -80,23 +80,23 @@ glmmML.fit <- function (X, Y,
         }else{ ## this is a proviso!!
             start.coef[1] <- mean(Y + 0.5)
         }
-        
-    }else{                   
+
+    }else{
         if (length(start.coef) != p) stop("beta.start has wrong length")
     }
-    
-    
+
+
     if (is.null(start.sigma)){
         start.sigma <- 0.5 # More sophisticated choice is = ?
-    }else{                  
+    }else{
         if (length(start.sigma) != 1) stop("start.sigma has wrong length")
     }
-    
+
     ord <- order(cluster)
     Y <- Y[ord]
     X <- X[ord, ,drop = FALSE]
-    
-    ## Center the covariates so we avoid (some) numerical problems: 
+
+    ## Center the covariates so we avoid (some) numerical problems:
     if (intercept){
         if (p >= 2){
             means <- numeric(p-1)
@@ -112,11 +112,11 @@ glmmML.fit <- function (X, Y,
             X[, i] <- X[, i] - means[i]
         }
     }
-    
+
     cluster <- cluster[ord]
     fam.size <- as.vector(table(cluster))
     n.fam <- length(fam.size)
-    
+
     glmFit <- glm.fit(X, Y,
                       weights,
                       start = start.coef,
@@ -147,7 +147,7 @@ glmmML.fit <- function (X, Y,
 
     fit <- .C("glmm_ml",
               as.integer(fam),
-              as.integer(p), 
+              as.integer(p),
               as.double(start.coef),
               as.integer(cluster),
               as.double(weights),
@@ -175,12 +175,12 @@ glmmML.fit <- function (X, Y,
               post.mean = double(n.fam),
               mu = double(nobs),
               bootP = double(1),
-              bootLog = double(boot), 
+              bootLog = double(boot),
               convergence = integer(1),
               info = integer(1),
               DUP = FALSE,
               PACKAGE = "glmmML"
-              )  
+              )
     if (fit$info) vari <- NULL
     else vari <- matrix(fit$variance, ncol = (p + 1))
     if (fix.sigma){
@@ -193,7 +193,7 @@ glmmML.fit <- function (X, Y,
             fit$beta[1] <- fit$beta[1] - sum(fit$beta[2:p] * means)
             aa <- numeric(p)
             aa[1] <- 1.0
-            for (i in 2:p){ 
+            for (i in 2:p){
                 aa[i] <- -means[i-1]
                 ## "Restore" X (to what use?!):
                 X[, i] <- X[, i] + means[i-1]
@@ -205,7 +205,7 @@ glmmML.fit <- function (X, Y,
             X[, i] <- X[, i] + means[i]
         }
     }
-    
+
     if (length(vari)){
         beta.sd <- sqrt(diag(vari[1:p, 1:p, drop = FALSE]))
         if (fix.sigma) sigma.sd <- 0
@@ -214,7 +214,7 @@ glmmML.fit <- function (X, Y,
         beta.sd <- NA
         sigma.sd <- NA
     }
-    
+
     aic.model <- -2 * fit$loglik + 2 * nvars
     if (boot){
         bootP <- fit$bootP
@@ -228,20 +228,20 @@ glmmML.fit <- function (X, Y,
          loglik = fit$loglik,
          variance = vari,
          bootP = bootP,
-         post.mode = fit$post.mode,
+         post.mode = fit$post.mode * fit$sigma, # * fit$sigma added 2009-02-11!
          post.mean = fit$post.mean,
          residuals = residuals,
-         fitted.values = fit$mu, 
-         family = family, 
+         fitted.values = fit$mu,
+         family = family,
          deviance = -2*fit$loglik,
-         aic = aic.model, 
+         aic = aic.model,
                                         #null.deviance = nulldev,
          df.residual = NROW(Y) - NCOL(X) - 1,
          df.null = NROW(Y) - as.integer(intercept),
                                         #y = y,
          cluster.null.deviance = cluster.null.deviance,
          cluster.null.df = cluster.null.df,
-         
+
          convergence = fit$convergence,
          info = fit$info) # 'info' coming from 'nr_opt'!
 }

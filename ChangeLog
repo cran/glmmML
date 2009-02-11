@@ -1,0 +1,4 @@
+0.81-4	(Feb 11, 2009)
+	* posterior.means corrected (multiplication by sigma_hat missing
+	earlier). Thanks to Rob Strawderman for pointing it out.
+	
