@@ -217,12 +217,12 @@ void glmm_boot0(int *family,
 
 	if (!ant_fam_out){
 	    /* Rprintf("Only trivial CLUSTERS!!!\n"); */
-	    boot_log[i] = 0.0;
+		boot_log[rep] = 0.0;           /* Fixed 090528 (i --> rep)*/
 	    if (0.0 >= *loglik) upper++;
 	}else{
 	
 	    Fmin = bfun(ext->p, b, ext);
-	    boot_log[i] = -Fmin;
+	    boot_log[rep] = -Fmin;              /* Fixed 090528 (i --> rep)*/
 	    if (-Fmin >= *loglik) upper++;
 	}
     }
