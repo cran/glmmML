@@ -53,7 +53,7 @@ intercept = TRUE, boot = 0, prior = 0)
 %  \code{glmmPQL}} 
 
 \seealso{\code{\link{glmmML}}, \code{\link[MASS]{glmmPQL}}, and
-  \code{\link[Matrix]{lmer}}.} 
+  \code{\link[lme4]{lmer}}.} 
 
 \examples{
 x <- cbind(rep(1, 14), rnorm(14))

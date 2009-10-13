@@ -69,8 +69,7 @@ factor has many levels.}
 own intercept. See \code{frail}}
 
 \seealso{\code{link{glmmML}}, \code{\link{optim}},
-  \code{\link[repeated]{glmm}} in 
-\code{repeated}, \code{\link[Matrix]{lmer}} in \code{Matrix}, and
+  \code{\link[lme4]{lmer}} in \code{Matrix}, and 
 \code{\link[MASS]{glmmPQL}} in \code{MASS}.}
 
 \examples{
