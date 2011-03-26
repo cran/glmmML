@@ -11,7 +11,7 @@ integration via Gauss-Hermite quadrature.
 glmmML(formula, family = binomial, data, cluster, weights,
 cluster.weights, subset, na.action, 
 offset, prior = c("gaussian", "logistic", "cauchy"),
-start.coef = NULL, start.sigma = NULL, fix.sigma = FALSE, 
+start.coef = NULL, start.sigma = NULL, fix.sigma = FALSE, x = FALSE, 
 control = list(epsilon = 1e-08, maxit = 200, trace = FALSE),
 method = c("Laplace", "ghq"), n.points = 8, boot = 0) 
 }
@@ -38,6 +38,7 @@ method = c("Laplace", "ghq"), n.points = 8, boot = 0)
   \item{start.sigma}{starting value for the mixing standard
     deviation. Defaults to 0.5.}
   \item{fix.sigma}{Should sigma be fixed at start.sigma?}
+  \item{x}{If TRUE, the design matrix is returned (as x).}
   \item{offset}{this can be used to specify an a priori known component to be
           included in the linear predictor during fitting.}
 \item{prior}{Which "prior" distribution (for the random effects)?
@@ -80,7 +81,11 @@ the help page for glm for details.}
   \item{deviance}{Deviance}
   \item{mixed}{Logical}
   \item{df.residual}{Degrees of freedom}
-  \item{cluster.null.deviance}{Deviance from a glm with no clustering}
+  \item{cluster.null.deviance}{Deviance from a glm with no
+    clustering. Subtracting \code{deviance} gives a test statistic for
+    the null hypothesis of no clustering. Its asymptotic distribution is
+  a symmetric mixture a constant at zero and a chi-squared distribution
+  with one df. The printed p-value is based on this.}
   \item{cluster.null.df}{Its degrees of freedom}
   \item{posterior.modes}{Estimated posterior modes of the random effects}
   \item{terms}{The terms object}
@@ -89,6 +94,7 @@ the help page for glm for details.}
     value and rerun.}
   \item{prior}{Which prior was used?}
   \item{call}{The function call}
+  \item{x}{The design matrix if asked for, otherwise not present}
 }
 \references{Broström (2003). Generalized linear models with random
   intercepts. \url{http://www.stat.umu.se/forskning/reports/glmmML.pdf}

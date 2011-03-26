@@ -11,6 +11,7 @@ glmmML <- function(formula,
                    start.coef = NULL,
                    start.sigma = NULL,
                    fix.sigma = FALSE,
+                   x = FALSE, # Should design matrix be returned?
                    control = list(epsilon = 1.e-8,
                        maxit = 200, trace = FALSE),
                    method = c("Laplace", "ghq"),
@@ -174,6 +175,7 @@ glmmML <- function(formula,
     res$terms <- mt
     res$info <- fit$info # From inverting the hessian! Should be zero.
     res$call <- cl
+    if (x) res$x <- X
     names(res$coefficients) <- c(colnames(X))
     class(res) <- "glmmML"
     res

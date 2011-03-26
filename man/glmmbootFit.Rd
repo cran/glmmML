@@ -1,4 +1,4 @@
-\encoding{latin1}
+\encoding{UTF-8}
 \name{glmmbootFit}
 \alias{glmmbootFit}
 %- Also NEED an '\alias' for EACH other topic documented here.
@@ -50,7 +50,7 @@ A list with components
   \item{boot_rep}{The number of bootstrap replicates.}
 }
 %\references{}
-\author{\enc{Göran Broström}{George Bridgewater}}
+\author{\enc{GÃ¶ran BrostrÃ¶m}{George Bridgewater}}
 \note{
 A profiling approach is used to estimate the cluster effects. 
 }

@@ -1,4 +1,4 @@
-\encoding{latin1}
+\encoding{UTF-8}
 \name{glmmboot}
 \alias{glmmboot}
 \title{Generalized Linear Models with fixed effects grouping}
@@ -63,7 +63,7 @@ factor has many levels.}
 }
 
 %\references{ ~put references to the literature/web site here ~ }
-\author{\enc{Göran Broström}{George Bridgewater}}
+\author{\enc{GÃ¶ran BrostrÃ¶m}{George Bridgewater}}
 
 \note{There is no overall intercept for this model; each cluster has its
 own intercept. See \code{frail}}

@@ -20,10 +20,13 @@ print.glmmML <- function(x,
     cat("\n")
     prmatrix(tmp)
     
-        cat("\nScale parameter in mixing distribution: ", x$sigma,
-            x$prior, "\n")
-        cat("Std. Error:                             ", x$sigma.sd, "\n")
+    cat("\nScale parameter in mixing distribution: ", x$sigma,
+        x$prior, "\n")
+    cat("Std. Error:                             ", x$sigma.sd, "\n")
 
+    pv <- 0.5 * pchisq(x$cluster.null.deviance - x$deviance, df = 1,
+                       lower.tail = FALSE)
+        cat("\n        LR p-value for H_0: sigma = 0: ", pv, "\n")
     if(x$boot){
         cat("\n Bootstrap p-value for H_0: sigma = 0: ",
         x$bootP, "(", x$boot, ")\n")

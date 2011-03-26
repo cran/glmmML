@@ -1,7 +1,14 @@
+0.81-8: (March 21, 2011)
+	* Added a Vignette.
+	* Added a p-value (based on LR test) of clustering.
+
+0.81-7: (April 19, 2010)
+	* glmmML: Return of design matrix made possible
+
 0.81-5	(May 29, 2009)
 	* glmmboot contained a bug in the bootstrapping procedure. Fixed.
-	
+
 0.81-4	(Feb 11, 2009)
 	* posterior.means corrected (multiplication by sigma_hat missing
 	earlier). Thanks to Rob Strawderman for pointing it out.
-	
+
