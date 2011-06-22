@@ -112,7 +112,9 @@ glmmML.fit <- function (X, Y,
             X[, i] <- X[, i] - means[i]
         }
     }
-
+    weights <- weights[ord] # Fixed Version 0.82!
+    offset <- offset[ord]   # Ditto!
+    cluster.weights <- cluster.weights[ord] # Ditto!
     cluster <- cluster[ord]
     fam.size <- as.vector(table(cluster))
     n.fam <- length(fam.size)
@@ -235,7 +237,7 @@ glmmML.fit <- function (X, Y,
          family = family,
          deviance = -2*fit$loglik,
          aic = aic.model,
-                                        #null.deviance = nulldev,
+         n = NROW(Y),                               #null.deviance = nulldev,
          df.residual = NROW(Y) - NCOL(X) - 1,
          df.null = NROW(Y) - as.integer(intercept),
                                         #y = y,

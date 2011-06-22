@@ -114,6 +114,7 @@ glmmboot <- function(formula,
     ##res$deviance <- -2 * res$logLik
     nvars <- NCOL(X) - 1 + length(unique(cluster))
     res$df.residual <- length(Y) - nvars
+    res$n <- NROW(Y)
     res$aic <- res$deviance + 2 * nvars ## CHECK this !!
     res$boot <- TRUE
     res$call <- cl

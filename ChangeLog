@@ -1,3 +1,8 @@
+0.82: *	(June 22, 2011)
+	* glmmML: Fixed a bug by sorting weights.
+	* extractAIC: added method for glmmML and glmmboot.
+	* nobs: Added method for glmmML and glmmboot.
+
 0.81-8: (March 21, 2011)
 	* Added a Vignette.
 	* Added a p-value (based on LR test) of clustering.
