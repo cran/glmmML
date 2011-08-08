@@ -96,8 +96,9 @@ the help page for glm for details.}
   \item{call}{The function call}
   \item{x}{The design matrix if asked for, otherwise not present}
 }
-\references{Broström (2003). Generalized linear models with random
-  intercepts. \url{http://www.stat.umu.se/forskning/reports/glmmML.pdf}
+\references{Broström, G. and Holmberg, H. (2011). Generalized linear models with
+  clustered data: Fixed and random effects models. Computational
+  Statistics and Data Analysis 55:3123-3134.
  }
 \author{\enc{Göran Broström}{George Bridgewater}}
 \note{The optimization may not converge with

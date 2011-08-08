@@ -62,8 +62,10 @@ factor has many levels.}
   \item{call}{The function call}
 }
 
-%\references{ ~put references to the literature/web site here ~ }
-\author{\enc{Göran Broström}{George Bridgewater}}
+\references{Broström, G. and Holmberg, H. (2011). Generalized linear models with
+  clustered data: Fixed and random effects models. Computational
+  Statistics and Data Analysis 55:3123-3134.}
+\author{\enc{Göran Broström}{George Bridgewater} and Henrik Holmberg}
 
 \note{There is no overall intercept for this model; each cluster has its
 own intercept. See \code{frail}}

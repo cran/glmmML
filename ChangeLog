@@ -1,4 +1,7 @@
-0.82: *	(June 22, 2011)
+0.82-1	(August 8, 2011)
+	* glmmboot: Bug in calculation of 'frail' fixed.
+
+0.82: 	(June 22, 2011)
 	* glmmML: Fixed a bug by sorting weights.
 	* extractAIC: added method for glmmML and glmmboot.
 	* nobs: Added method for glmmML and glmmboot.

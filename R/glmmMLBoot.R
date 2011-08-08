@@ -140,8 +140,9 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
                     fitted = fit$fitted,
                     logLik = fit$loglik,
                     cluster.null.deviance = cluster.null.deviance,
-                    ## Corrects for "centering" above (Added 0.72):
-                    frail = fit$frail - means * fit$beta,
+                    ## Corrects for "centering" above (Added 0.72 and
+                    ## corrected 2011-08-08):
+                    frail = fit$frail - sum(means * fit$beta),
                     bootLog = fit$bootLog,
                     bootP = fit$bootP,
                     info = fit$info)
