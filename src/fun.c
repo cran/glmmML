@@ -105,7 +105,7 @@ double K_logit(double x, double yw, double weight){
     res = yw * log1p(-q) - (weight - yw) * s;
 
     if ((yw > 0.001) & (weight - yw) > 0.001){
-	Rprintf("yw = %f, weight = %f\n", yw, weight);
+	/* Rprintf("yw = %f, weight = %f\n", yw, weight); */
 	p = yw / weight;
 	res = res - (yw * log(p) + (weight - yw) * log(1.0 - p));
     }
@@ -1542,7 +1542,7 @@ double fun(int pp1,
     }
     Free(fam->x);
     Free(fam);
-    /* printf("[fun]; -loglik = %f\n", -loglik); */ 
+    /* Rprintf("[fun]; -loglik = %f\n", -loglik); */ 
     return ( -loglik ); /* Note: minimizing!!! */
 }
 

@@ -173,7 +173,7 @@ void glmm_boot0(int *family,
     for (rep = 0; rep < *boot; rep++){
 	if (*trace){
 	    if ((rep / 10) * 10 == rep)
-		printf("********************* Replicate No. No. %d\n", i);
+		Rprintf("********************* Replicate No. No. %d\n", i);
 	}
 	if (*family <= 1){ /* Bernoulli */
 	    indx = -1;

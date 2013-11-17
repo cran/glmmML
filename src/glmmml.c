@@ -278,12 +278,12 @@ void glmm_ml(int *family,
 
     if (*trace){
 	Rprintf("Max log likelihood after vmmin: %f\n", -Fmin);
-	printf("beta: ");
+	Rprintf("beta: ");
 	for (i = 0; i < bdim; i++){
 	    Rprintf(" %f, ", b[i]);
 	}
 	Rprintf("\n");
-	printf("Gradients: ");
+	Rprintf("Gradients: ");
 	for (i = 0; i < bdim; i++){
 	    Rprintf(" %f, ", -gr[i]);
 	}
@@ -330,32 +330,32 @@ void glmm_ml(int *family,
     }
     
     if(*trace){
-	printf("Max log likelihood: %f\n", -Fmin);
-	printf("Beta: ");
+	Rprintf("Max log likelihood: %f\n", -Fmin);
+	Rprintf("Beta: ");
 	for (i = 0; i < bdim; i++){
-	    printf(" %f, ", b[i]);
+	    Rprintf(" %f, ", b[i]);
 	}
-	printf("\n");
-	printf("Gradients: ");
+	Rprintf("\n");
+	Rprintf("Gradients: ");
 	for (i = 0; i < bdim; i++){
-	    printf(" %f, ", gr[i]);
+	    Rprintf(" %f, ", gr[i]);
 	}
 	if (!(*fix_sigma)){
-	    printf("\n");
-	    printf("variance:\n");
+	    Rprintf("\n");
+	    Rprintf("variance:\n");
 	    for (i = 0; i < bdim; i++){
 		for (j = 0; j < bdim; j++)
-		    printf(" %f, ", hessian[i][j]);
-		printf("\n");
+		    Rprintf(" %f, ", hessian[i][j]);
+		Rprintf("\n");
 	    }
 	}
 	if (laplace == 1){
-	    printf("\nMethod is Laplace\n");
+	    Rprintf("\nMethod is Laplace\n");
 	}else{
 	    if (laplace == 0){
-		printf("Method is Gauss-Hermite\n");
+		Rprintf("Method is Gauss-Hermite\n");
 	    }else{
-		printf("Method is %d\n", laplace);
+		Rprintf("Method is %d\n", laplace);
 	    }
 	}
     }
@@ -376,7 +376,7 @@ void glmm_ml(int *family,
 	for (i = 0; i < *boot; i++){
 	    if (*trace){
 		if ((i / 10) * 10 == i)
-		    printf("********************* Replicate No. %d\n", i);
+		    Rprintf("********************* Replicate No. %d\n", i);
 	    }
 	 
 	    if (*family <= 1){ /* Bernoulli */

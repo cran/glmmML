@@ -227,7 +227,7 @@ double bfun(int p, double *b, void *ex){
 
 /* Now get the log likelihood: */
     loglik = 0.0;
-    /* printf("beta[%d] = %f\n", 0, b[0]);  */
+    /* Rprintf("beta[%d] = %f\n", 0, b[0]);  */
     for (i = 0; i < ext->n_clust; i++){
 	if (clust[i].out == 0){
 	    for (j = 0; j < clust[i].n; j++){

@@ -30,7 +30,8 @@ control = list(epsilon = 1.e-8, maxit = 200, trace
   \item{control}{A list. Controls the convergence criteria. See
   \code{\link{glm.control}} for details.} 
   \item{boot}{number of bootstrap replicates. If equal to zero, no test
-    of significance of the grouping factor is performed.}
+    of significance of the grouping factor is performed. If non-zero, it
+  should be large, at least, say, 2000.}
 }
 %\details{
 
@@ -60,10 +61,10 @@ A profiling approach is used to estimate the cluster effects.
 x <- matrix(rnorm(1000), ncol = 1)
 id <- rep(1:100, rep(10, 100))
 y <- rbinom(1000, size = 1, prob = 0.4)
-fit <- glmmbootFit(x, y, cluster = id, boot = 2000)
+fit <- glmmbootFit(x, y, cluster = id, boot = 200)
 summary(fit)
 ## End(Not run)
-## Should show no effects.
+## Should show no effects. And boot too small.
 }
 \keyword{regression}% at least one, from doc/KEYWORDS
 \keyword{nonlinear}% __ONLY ONE__ keyword per line

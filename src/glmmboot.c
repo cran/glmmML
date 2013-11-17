@@ -209,7 +209,7 @@ void glmm_boot(int *family,
     bfun_gr(*p, b, gr, ext);
     if(*trace){
 	Rprintf("Max log likelihood after vmmin: %f\n", -Fmin);
-	printf("Gradients: ");
+	Rprintf("Gradients: ");
 	for (i = 0; i < *p; i++){
 	    Rprintf(" %f, ", gr[i]);
 	}
@@ -296,7 +296,7 @@ void glmm_boot(int *family,
     for (rep = 0; rep < *boot; rep++){
 	if (*trace){
 	    if ((rep / 10) * 10 == rep)
-		printf("********************* Replicate No. %d\n", rep);
+		Rprintf("********************* Replicate No. %d\n", rep);
 	}
 	if (*family <= 1){ /* Bernoulli */
 	    indx = -1;
