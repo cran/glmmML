@@ -1,3 +1,7 @@
+1.0.1	(February 9, 2017)
+	* Remove DUP in foreign calls.
+	* Check for NaN in C code (rudimentary).
+
 1.0	(November 17, 2013)
 	* Rprintf is replacing printf everywhere in the C code.
 

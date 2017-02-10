@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <R_ext/Linpack.h>
 #include <R_ext/Applic.h>
+#include <R_ext/Utils.h>
 
 #include "glmmml.h"
 #include "fun.h"
@@ -306,18 +307,29 @@ void glmm_ml(int *family,
     }
     if (!(*fix_sigma)){
 	*sigma = b[*p]; /* NOTE!!!!!!!! */
-	F77_CALL(dpoco)(*hessian, &bdim, &bdim, &rcond, work, info);
-	if (*info == 0){
-	    F77_CALL(dpodi)(*hessian, &bdim, &bdim, det, &job);
-	    for (m = 0; m < bdim; m++){
-		for (k = 0; k < m; k++){
-		    hessian[k][m] = hessian[m][k];
+	for (m = 0; m < bdim; m++){
+	    for (k = 0; k < m; k++){
+		if (!R_FINITE(hessian[k][m])){
+		    fail = 1;
 		}
 	    }
+	}
+	if (fail){
+	    warning("Non-finite value(s) in hessian");
+	}else {
+	    F77_CALL(dpoco)(*hessian, &bdim, &bdim, &rcond, work, info);
+	    if (*info == 0 && R_FINITE(hessian[0][0])){ /* Hack */
+		F77_CALL(dpodi)(*hessian, &bdim, &bdim, det, &job);
+		for (m = 0; m < bdim; m++){
+		    for (k = 0; k < m; k++){
+			hessian[k][m] = hessian[m][k];
+		    }
+		}
 	    
-	}else{
-	    Rprintf("info = %d\n", *info);
-	    warning("Hessian non-positive definite. No variance!");
+	    }else{
+		Rprintf("info = %d\n", *info);
+		warning("Hessian non-positive definite. No variance!");
+	    }
 	}
     }
     

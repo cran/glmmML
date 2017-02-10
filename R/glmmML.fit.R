@@ -180,7 +180,7 @@ glmmML.fit <- function (X, Y,
               bootLog = double(boot),
               convergence = integer(1),
               info = integer(1),
-              DUP = FALSE,
+              ##DUP = FALSE,
               PACKAGE = "glmmML"
               )
     if (fit$info) vari <- NULL
