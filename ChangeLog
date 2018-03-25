@@ -1,3 +1,6 @@
+1.0.3   (March 25, 2018)
+	* Change '&' to '&&' in relevant places in C code.
+
 1.0.2	(May 3, 2017)
 	* Register Fortran and C calls.
 

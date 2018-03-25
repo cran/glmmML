@@ -126,7 +126,7 @@ void glmm_boot0(int *family,
 	if (fabs(clust[i].ytot) < 0.001){
 	    clust[i].out = -1;
 	    clust[i].gamma = -1000.0; /* -inf */
-	}else if (fabs(clust[i].wtot - clust[i].ytot) < 0.001 & 
+	}else if ((fabs(clust[i].wtot - clust[i].ytot) < 0.001) && 
 		  (ext->family <= 1)){
 	    clust[i].out = 1;
 	    clust[i].gamma = 1000.0; /* +inf */
@@ -205,7 +205,7 @@ void glmm_boot0(int *family,
 	    if (fabs(clust[i].ytot) < 0.001){
 		clust[i].out = -1;
 		clust[i].gamma = -1000.0; /* -inf */
-	    }else if (fabs(clust[i].wtot - clust[i].ytot) < 0.001 & 
+	    }else if ((fabs(clust[i].wtot - clust[i].ytot) < 0.001) && 
 		      (ext->family <= 1)){
 		clust[i].out = 1;
 		clust[i].gamma = 1000.0; /* +inf */

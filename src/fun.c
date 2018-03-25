@@ -31,7 +31,7 @@ double P_logit(double x, double yw, double weight){ /* logit link */
 
     res = x * yw - weight * log1p(exp(x));
 
-    if ((yw > 0.001) & (weight - yw) > 0.001){ 
+    if ((yw > 0.001) && ((weight - yw) > 0.001)){ 
 	p = yw / weight;
 	res = res - (yw * log(p) + (weight - yw) * log(1.0 - p));
     }
@@ -104,7 +104,7 @@ double K_logit(double x, double yw, double weight){
     
     res = yw * log1p(-q) - (weight - yw) * s;
 
-    if ((yw > 0.001) & (weight - yw) > 0.001){
+    if ((yw > 0.001) && ((weight - yw) > 0.001)){
 	/* Rprintf("yw = %f, weight = %f\n", yw, weight); */
 	p = yw / weight;
 	res = res - (yw * log(p) + (weight - yw) * log(1.0 - p));

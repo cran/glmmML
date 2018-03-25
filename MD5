@@ -1,5 +1,5 @@
-3853da6f2264a1d2d6585374349df391 *ChangeLog
-91c8305c4c93e402a2befd9abcdaa4bc *DESCRIPTION
+a66c6dbc5e4340fe40f0924edc1ab988 *ChangeLog
+6d9064e972daf689be567cd8430335cf *DESCRIPTION
 a3d4b9c7c21166ee24c190dbace4ddcf *NAMESPACE
 48666f21b06b7dd8fb7af6204211b69b *R/extract.R
 3319e3b3f111c246f2f5fad0d6a7cc16 *R/ghq.R
@@ -32,12 +32,12 @@ b00e33c2b2547306b5a2268a9b112c02 *src/Makevars
 9a05b0019299046d1a0cf237e5d5373c *src/bfun.c
 8357cc6c30e04409c4e2e5963c70f43c *src/bfun.h
 5b5931986977562d517bda3c45a4ac28 *src/c2f.c
-ad7915a0d7767260b96fd030ed667c7e *src/fun.c
+72a896a986ae761f6b6cd3f69cccb4c9 *src/fun.c
 49d602713c9cc493022746db275009a3 *src/fun.h
 b38e99c1c88245c8cc414bb310d7b378 *src/ghq.f
 26c6ca3de8d5bde0224f7413d77d2d0c *src/ghq.h
-f8e7bf1f67d3808c53bae51a8f77fae5 *src/glmmb0.c
-abc1e1021460992116df94b781086a2d *src/glmmboot.c
+f7605fb3c20b3fe77c1c1bc0b5074254 *src/glmmb0.c
+ec7bd25eae9cd5b7827a215a0fb4ef84 *src/glmmboot.c
 ddac5160713e5af88da427a6e9534501 *src/glmmboot.h
 d9ce9e6a466d4425403e114c7724146a *src/glmmml.c
 68d01e380e386ed0e3d20ad36c4c3c9c *src/glmmml.h
