@@ -10,7 +10,7 @@ integration via Gauss-Hermite quadrature.
 \usage{
 glmmML(formula, family = binomial, data, cluster, weights,
 cluster.weights, subset, na.action, 
-offset, prior = c("gaussian", "logistic", "cauchy"),
+offset, contrasts = NULL, prior = c("gaussian", "logistic", "cauchy"),
 start.coef = NULL, start.sigma = NULL, fix.sigma = FALSE, x = FALSE, 
 control = list(epsilon = 1e-08, maxit = 200, trace = FALSE),
 method = c("Laplace", "ghq"), n.points = 8, boot = 0) 
@@ -40,7 +40,8 @@ method = c("Laplace", "ghq"), n.points = 8, boot = 0)
   \item{fix.sigma}{Should sigma be fixed at start.sigma?}
   \item{x}{If TRUE, the design matrix is returned (as x).}
   \item{offset}{this can be used to specify an a priori known component to be
-          included in the linear predictor during fitting.}
+    included in the linear predictor during fitting.}
+  \item{contrasts}{an optional list. See the 'contrasts.arg' of 'model.matrix.default'.}
 \item{prior}{Which "prior" distribution (for the random effects)?
 Possible choices are "gaussian" (default), "logistic", and "cauchy".} 
   \item{control}{Controls the convergence criteria. See
@@ -96,11 +97,11 @@ the help page for glm for details.}
   \item{call}{The function call}
   \item{x}{The design matrix if asked for, otherwise not present}
 }
-\references{Broström, G. and Holmberg, H. (2011). Generalized linear models with
+\references{Brostr\"om, G. and Holmberg, H. (2011). Generalized linear models with
   clustered data: Fixed and random effects models. Computational
   Statistics and Data Analysis 55:3123-3134.
  }
-\author{\enc{Göran Broström}{George Bridgewater}}
+\author{\enc{G\"oran Brostr\"om}{George Bridgewater}}
 \note{The optimization may not converge with
 the default value of \code{start.sigma}. In that case, try different
 start values for sigma. If still no convergence, consider the

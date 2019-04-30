@@ -1,3 +1,7 @@
+1.1.0	(April 30, 2019)
+	* glmmML: argument 'contrasts = NULL' added.
+	* glmmboot: argument 'contrasts = NULL' added.
+
 1.0.3   (March 25, 2018)
 	* Change '&' to '&&' in relevant places in C code.
 

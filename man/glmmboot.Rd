@@ -8,7 +8,7 @@
 }
 \usage{
 glmmboot(formula, family = binomial, data, cluster, weights, subset, na.action,
-offset, start.coef = NULL,
+offset, contrasts = NULL, start.coef = NULL,
 control = list(epsilon = 1e-08, maxit = 200, trace = FALSE), boot = 0)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -29,6 +29,7 @@ control = list(epsilon = 1e-08, maxit = 200, trace = FALSE), boot = 0)
   \item{na.action}{See glm.}
   \item{offset}{this can be used to specify an a priori known component to be
     included in the linear predictor during fitting.}
+  \item{contrasts}{an optional list. See the 'contrasts.arg' of 'model.matrix.default'.}
   \item{start.coef}{starting values for the parameters in the linear predictor.
  Defaults to zero.}
   \item{control}{Controls the convergence criteria. See
@@ -62,10 +63,10 @@ factor has many levels.}
   \item{call}{The function call}
 }
 
-\references{Broström, G. and Holmberg, H. (2011). Generalized linear models with
+\references{Brostr\"om, G. and Holmberg, H. (2011). Generalized linear models with
   clustered data: Fixed and random effects models. Computational
   Statistics and Data Analysis 55:3123-3134.}
-\author{\enc{Göran Broström}{George Bridgewater} and Henrik Holmberg}
+\author{\enc{G\"oran Brostr\"om}{George Bridgewater} and Henrik Holmberg}
 
 \note{There is no overall intercept for this model; each cluster has its
 own intercept. See \code{frail}}
