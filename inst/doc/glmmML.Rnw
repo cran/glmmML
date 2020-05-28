@@ -193,10 +193,8 @@ some implementations in standard software. It is available in
 {\bf SAS}, {\bf Stata}, and in {\bf R} \cite{R}. There are also (at
 least) five {\bf R} packages available, the {\tt lme4} package \cite{lme4}
 includes the {\tt lmer} function, the {\tt MASS}
-package \cite{mass} includes Ripley's {\tt glmmPQL} function, the 
- {\tt glmmAK} package \cite{glmmAK}, the {\tt glmmBUGS} package
- \cite{glmmBUGS}, and, adding to 
-that, the presently discussed {\tt glmmML} package \citep{glmmML} 
+package \cite{mass} includes Ripley's {\tt glmmPQL} function, and, adding to 
+that, the presently discussed {\tt glmmML} package \citep{glmmML}. 
 
 So what is the motivation for the package {\tt glmmML}? Because
 it is different from the
@@ -268,10 +266,10 @@ P(x, y) = \bigl(1 - \exp(-e^x)\bigr)^y \exp\bigl(-(1-y)e^x\bigr),
  \quad y = 0, 1; \; -\infty < x < \infty,
 \end{equation*}
 The Poisson distribution with \emph{log link} gives rise to
-\begin{equation*}
+\begin{equation}\label{eq:poisson}
 P(x, y) = \frac{e^{xy}}{y!} e^{-e^x}, \quad y = 0, 1, 2, \ldots; \; -\infty < x
 < \infty
-\end{equation*}
+\end{equation}
 These are in fact all the possibilities that are available in {\tt glmmML}
 and will be considered in this paper. 
 

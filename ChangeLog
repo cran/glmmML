@@ -1,3 +1,16 @@
+1.1.1	(May 27 2020)
+	* Submitted to CRAN
+
+1.1.0.9100 (May 27, 2020)
+	* LTO complaints and some other small notes in C/Fortran code fixed.
+
+1.1.0.9050 (February 20, 2020)
+	* glmmboot, glmmMLBoot: Remove 'cat' statements.
+
+1.1.0.9000 (September 29, 2019)
+	* ghq.f : 'logical modified' changed to 'integer modified' and
+	later code changed accordingly.
+
 1.1.0	(April 30, 2019)
 	* glmmML: argument 'contrasts = NULL' added.
 	* glmmboot: argument 'contrasts = NULL' added.

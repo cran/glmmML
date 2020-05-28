@@ -8,23 +8,7 @@
 #include "glmmml.h"
 
 
-static double g(double u, void *ex);
 
-static double g_u(double u, void *ex);
-
-static double g_uu(double u, void *ex);
-
-static double g_s(double u, void *ex);
-
-static double g_m(double u, int m, void *ex);
-
-static double g_us(double u, void *ex);
-
-static double g_um(double u, int m, void *ex);
-
-static double g_uus(double u, void *ex);
-
-static double g_uum(double u, int m, void *ex);
 
 void frail_fun(int pp1, 
 		 double *beta,

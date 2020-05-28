@@ -20,6 +20,24 @@ extern d2_logpr *d2_logprior;
 extern d3_logpr *d3_logprior;
 extern d4_logpr *d4_logprior;
 
+static double g(double u, void *ex);
+
+static double g_u(double u, void *ex);
+
+static double g_uu(double u, void *ex);
+
+static double g_s(double u, void *ex);
+
+static double g_m(double u, int m, void *ex);
+
+static double g_us(double u, void *ex);
+
+static double g_um(double u, int m, void *ex);
+
+static double g_uus(double u, void *ex);
+
+static double g_uum(double u, int m, void *ex);
+
 /***********************************************************/
 /*         Bernoulli distribution, logit link:             */
 
@@ -76,9 +94,11 @@ double I_logit(double x, double yw, double weight){
 
 double K_logit(double x, double yw, double weight){ 
     
+/*
     double location = 0.0;
     double scale = 1.0;
-    int give_log = 1;
+    int give_log = 1; 
+*/
     double s;
     
     s = exp(x);
@@ -115,7 +135,7 @@ double K_logit(double x, double yw, double weight){
 
 double G_cloglog(double x, double yw, double weight){
 
-    double q, s, res;
+    double s, res;
 
     s = exp(x);
 /*    q = exp(-s); */
@@ -899,50 +919,50 @@ static void update(int level,
     double h;
     double *hb = NULL;
     double *hbb = NULL; /* (p+1) x (p+1) */
-    double sigma;
+/*    double sigma; */
     double tmp, tmp1, tmp2;
     int i, m, k;
 
     /* For integrate */
-    int inf = 2;
-    double bound = 0.0;
-    double epsabs = 0.0001; /* Check this!!!!!!!!!!!! */
-    double epsrel = 0.0001; /* !!!!!!!!!!!!!!!!!!!!!! */
-    double abserr;
-    int neval;
-    int ier;
+/*    int inf = 2; */
+/*    double bound = 0.0; */
+/*    double epsabs = 0.0001; Check this!!!!!!!!!!!! */
+/*    double epsrel = 0.0001; !!!!!!!!!!!!!!!!!!!!!! */
+/*    double abserr; */
+/*    int neval; */
+/*    int ier; */
     int limit = 100;
     int lenw;
     int *iwork;
     double *work;
-    int last;
-    double res;
+/*    int last; */
+/*    double res; */
     /* End For integrate */
     
     void *ex;
     double ax, bx;
-    int n;
-    double **x;
-    double *x_beta;
-    double *yw;
+/*    int n; */
+/*    double **x; */
+/*    double *x_beta; */
+/*    double *yw; */
 
-    int one = 1;
+/*    int one = 1; */
 
-    double u_hat, sigma_hat, sigma2_hat, fu;
-    double abstol = 0.000001;
+    double u_hat, sigma_hat, sigma2_hat;
+/*    double abstol = 0.000001; */
     double reltol = 0.000001;
     int maxit = 100;
-    int trace = 0;
-    int nREPORT = 1;
-    int fncount, grcount;
-    int fail = 0;
-    int mask = 1;
+/*    int trace = 0;
+      int nREPORT = 1; */
+/*    int fncount, grcount; */
+/*    int fail = 0; */
+/*    int mask = 1; */
 
     /* temporary gig: */
     double *u;
     double *wght;
 
-    char *vmax;
+    /* char *vmax; */
 
     double u_s, u_ss;
     double *u_m, *u_sm;
@@ -968,16 +988,16 @@ static void update(int level,
 
     ex = fam;
 
-    n = fam->n;
-    x = fam->x;
-    x_beta = fam->x_beta;
-    yw = fam->yw;
+/*    n = fam->n; */
+/*    x = fam->x; */
+/*    x_beta = fam->x_beta; */
+/*    yw = fam->yw; */
 
     lenw = 4 * limit;
     iwork = Calloc(limit, int);
     work = Calloc(lenw, double);
 
-    sigma = beta[p];
+/*    sigma = beta[p]; */
 
     /* First, find the u value that maximizes the integrand */
     /* (or, equivalently, the log of it:                    */ 
@@ -1475,7 +1495,7 @@ double fun(int pp1,
     double alpha = 1.0;
     int one = 1;
 
-    double tmp;
+/*    double tmp; */
     int i, j;
 
     Exts *ext;
@@ -1561,7 +1581,7 @@ void fun1(int pp1,
     Exts *ext;
     Family *fam;
 
-    double tmp;
+/*    double tmp; */
     double post_mode;
 
     int level = 1;
@@ -1651,7 +1671,7 @@ void fun2(int pp1,
 
     int i, j, k;
     int start;
-    double tmp;
+/*    double tmp; */
     double post_mode;
 
     Exts *ext;

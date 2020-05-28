@@ -25,7 +25,8 @@ static double get2_gam(Cluster *clust);
 
 static double gam0_fun(double gam, void *info){
     Cluster *clust;
-    double dg, egam, egscore;
+    double dg;
+/*    double egam, egscore; */
     int i;
     double x;
     double location = 0.0;
@@ -49,10 +50,9 @@ static double gam0_fun(double gam, void *info){
 static double get0_gam(Cluster *clust){
 
     /* Binomial, logit link */
-    int i, iter, itmax;
+    int i, itmax;
 
-    double gam, egam, p, delta, eps, dg, d2g;
-    double *score, wscore, mlin;
+    double gam, eps;
 
     double gmin, gmax;
     double ax, bx;
@@ -93,7 +93,7 @@ static double get0_gam(Cluster *clust){
 
 static double gam1_fun(double gam, void *info){
     Cluster *clust;
-    double dg, s;
+    double dg;
     int i;
     clust = info;
 
@@ -114,10 +114,9 @@ static double gam1_fun(double gam, void *info){
 static double get1_gam(Cluster *clust){
 
     /* Binomial, cloglog link */
-    int i, iter, itmax;
+    int i, itmax;
 
-    double gam, egam, p, delta, eps, dg, d2g;
-    double *score, wscore, mlin;
+    double gam, eps;
 
     double gmin, gmax;
     double ax, bx;
@@ -182,7 +181,7 @@ double bfun(int p, double *b, void *ex){
     int indx;
     double loglik;
 
-    int *cluster;
+/*    int *cluster; */
 
     Extb *ext;
     Cluster *clust;
@@ -244,12 +243,13 @@ void bfun_gr(int n, double *b, double *gr, void *ex){
     int i;
     int j;
     int s;
+/*    
     int indx;
     double tmp;
-
+    
     double *pe, *lin;
     double **x;
-
+*/
     Extb *ext;
     Cluster *clust;
 

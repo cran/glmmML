@@ -19,23 +19,25 @@ d2_logpr *d2_logprior;
 d3_logpr *d3_logprior;
 d4_logpr *d4_logprior;
 
+/* Not used?!
 static void permute(int n, int *y, int *x)
 {
-/* Result in y; x is just a "work area" */
 
     int i, j, k;
 
-    k = n; /* Eg, "wt sampling k-of-n" */
+    k = n;
 
     for (i = 0; i < n; i++)
 	x[i] = i;
     for (i = 0; i < k; i++) {
 	j = n * unif_rand();
-/*	y[i] = x[j] + 1; */
+
 	y[i] = x[j];
 	x[j] = x[--n];
     }
 }
+
+*/
 
 void glmm_ml(int *family,
 	     int *p, 
@@ -78,11 +80,11 @@ void glmm_ml(int *family,
     int grcount;
     int fail;
     int *mask;
-    int lmm = 5;
+/*    int lmm = 5; */
     double *lower, *upper;
     int * nbd;
-    double factr = 1e7;
-    double pgtol = 0.0;
+/*    double factr = 1e7; */
+/*    double pgtol = 0.0; */
     char msg[60];
 #endif
     Exts *ext;
@@ -108,12 +110,12 @@ void glmm_ml(int *family,
 
     int modified = 1;
 
-    int *conditional;
-    int condi = 1;
+/*    int *conditional; */
+/*    int condi = 1; */
 
     laplace = *method; /* 1 = Laplace, 0 = Gauss-Hermite */
 /* This is done to prepare for having conditional as an input parameter */     
-    conditional = &condi;
+/*    conditional = &condi; */
 
     if (*trace){
 	Rprintf("************* Entering [glmmml] **************** \n");

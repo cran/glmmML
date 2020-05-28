@@ -9,23 +9,24 @@ extern P_fun *P;
 extern G_fun *G;
 extern H_fun *H;
 
+/* Not used!?
 static void permute(int n, int *y, int *x)
 {
-/* Result in y; x is just a "work area" */
 
     int i, j, k;
 
-    k = n; /* Eg, "wt sampling k-of-n" */
+    k = n; 
 
     for (i = 0; i < n; i++)
 	x[i] = i;
     for (i = 0; i < k; i++) {
 	j = n * unif_rand();
-/*	y[i] = x[j] + 1; */
+
 	y[i] = x[j];
 	x[j] = x[--n];
     }
 }
+*/
 
 void glmm_boot0(int *family,
 		int *cluster,
@@ -45,8 +46,8 @@ void glmm_boot0(int *family,
 		int *convergence){
     
 #ifndef MATHLIB_STANDALONE
-    double abstol;
-    double reltol;
+/*    double abstol; */
+/*    double reltol; */
 #endif
     Extb *ext;
     Cluster *clust;
@@ -81,8 +82,8 @@ void glmm_boot0(int *family,
 	error("Unknown family\n");
     }
 
-    abstol = 0.00000001;
-    reltol = abstol;
+/*    abstol = 0.00000001; */
+/*    reltol = abstol; */
 
     ext = Calloc(1, Extb);
     clust = Calloc(*n_fam, Cluster);

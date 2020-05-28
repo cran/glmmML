@@ -93,6 +93,7 @@ glmmboot <- function(formula,
     ##if (!is.na(coli <- match("(Intercept)", colnames(X))))
     ##    X <- X[, -coli, drop = FALSE]
 
+    ##cat("offset = ", offset, "\n")
     res <- glmmbootFit(X, Y,
                        weights,
                        start.coef,

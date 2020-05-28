@@ -106,7 +106,8 @@ glmmbootFit <- function (X, Y, weights = rep(1, NROW(Y)),
     if (p >= 1){
         means <- colMeans(X)
         X <- scale(X, center = TRUE, scale = FALSE)
-        ## cat("means = ", means, "\n")
+        ##cat("[glmmMLBoot:] offset = ", offset, "\n")
+        ##cat("X = ", X, "\n")
         fit <- .C("glmm_boot",
                   as.integer(fam),
                   as.integer(p),
