@@ -1,3 +1,8 @@
+#define USE_FC_LEN_T
+#ifndef FCONE
+# define FCONE
+#endif
+
 #include <stdio.h>
 #include <math.h>
 
@@ -1534,7 +1539,7 @@ double fun(int pp1,
     F77_CALL(dcopy)(&(ext->n), ext->offset, &one, ext->x_beta, &one);
     F77_CALL(dgemv)(&trans, &(ext->n), &(ext->p), 
     &alpha, ext->x[0], &(ext->n), beta, &one,
-		    &alpha, ext->x_beta, &one);
+		    &alpha, ext->x_beta, &one FCONE);
 
 
     start = 0;
@@ -1622,7 +1627,7 @@ void fun1(int pp1,
     F77_CALL(dcopy)(&(ext->n), ext->offset, &one, ext->x_beta, &one);
     F77_CALL(dgemv)(&trans, &(ext->n), &(ext->p), 
     &alpha, ext->x[0], &(ext->n), beta, &one,
-		    &alpha, ext->x_beta, &one);
+		    &alpha, ext->x_beta, &one FCONE);
 
   
     start = 0;
@@ -1713,7 +1718,7 @@ void fun2(int pp1,
     F77_CALL(dcopy)(&(ext->n), ext->offset, &one, ext->x_beta, &one);
     F77_CALL(dgemv)(&trans, &(ext->n), &(ext->p), 
     &alpha, ext->x[0], &(ext->n), beta, &one,
-		    &alpha, ext->x_beta, &one);
+		    &alpha, ext->x_beta, &one FCONE);
 
     
     start = 0;
