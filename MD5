@@ -1,5 +1,5 @@
-c63cac82a428bfd1c518b2fe3d3a0e26 *ChangeLog
-1fb75ac54b29ae22969b75e94b22d8ea *DESCRIPTION
+90ed3eb1476e08f666a8a1b02000d094 *ChangeLog
+9718aeec42ddb911655cf44a0ca35f29 *DESCRIPTION
 a3d4b9c7c21166ee24c190dbace4ddcf *NAMESPACE
 48666f21b06b7dd8fb7af6204211b69b *R/extract.R
 3319e3b3f111c246f2f5fad0d6a7cc16 *R/ghq.R
@@ -13,9 +13,9 @@ ea19579caeb35311b784cc99eb610017 *R/snut.R
 af1559ff5197b968c3c0ed715f81eaa5 *R/summary.glmmML.R
 8ee8a260098d1f33ae21a9be520aa6f0 *R/summary.glmmboot.R
 77a9a3c901d58cd33e6f2ef3e3a70318 *ToDo
-88b460f7da49223c869eb37352333370 *build/vignette.rds
+57dad75f1b04b312675771880a0f520c *build/vignette.rds
 758832777997cbce4027d2ae9547c837 *inst/doc/glmmML.Rnw
-b93a27e1399d653af2056fbbaad61071 *inst/doc/glmmML.pdf
+092ddc06592ad228db988ea64089a50c *inst/doc/glmmML.pdf
 de196ffe6125feb9299a654babbf3665 *man/ghq.Rd
 5f597e798ce8ed90b657534f03a62354 *man/glmmML.Rd
 e5476a2b4830b2f2e283a1e06ced78ae *man/glmmML.fit.Rd
@@ -31,7 +31,7 @@ d35532bafea37e848e0208d7791558c0 *src/Makevars
 2618693f09901e6344aaec87d5f2840d *src/bfun.c
 8357cc6c30e04409c4e2e5963c70f43c *src/bfun.h
 5b5931986977562d517bda3c45a4ac28 *src/c2f.c
-722338c70d7957b6657602e12213269a *src/fun.c
+1244a90535985cbd6ec0d126eab44bbb *src/fun.c
 b18d329921888effbfb888c5b0b321f6 *src/fun.h
 3d40a0509f0d7af57f0968a14be5c44d *src/ghq.f
 64cae894bf834cc24aa8db5c0b979da7 *src/ghq.h

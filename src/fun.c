@@ -1,7 +1,9 @@
+/* Removed by Brian's suggestion:
 #define USE_FC_LEN_T
 #ifndef FCONE
 # define FCONE
 #endif
+*/
 
 #include <stdio.h>
 #include <math.h>
