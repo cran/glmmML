@@ -1,4 +1,5 @@
 ##PKG_CFLAGS = -Wall -pedantic -flto
+###PKG_CFLAGS = -Winvalid-utf8
 ##PKG_FFLAGS = -Wall -pedantic -flto
 ##PKG_LIBS = -llapack -lcblas -lf77blas -latlas
 PKG_LIBS = $(BLAS_LIBS) $(FLIBS)

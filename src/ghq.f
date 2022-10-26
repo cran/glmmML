@@ -17,7 +17,7 @@ C       461 William L Everitt Laboratory
 C       1406 West Green Street
 C       Urbana, IL 61801-2991
 C
-C     Rewritten by Göran Broström to accommodate for the 
+C     Rewritten by GÃ¶ran BrostrÃ¶m to accommodate for the 
 C     'sqrt(2*pi)' factor in the standard normal density.
 C     Not any more! (2006-08-04)
 C
