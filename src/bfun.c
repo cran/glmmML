@@ -6,6 +6,7 @@
 #include "bfun.h"
 #include <Rmath.h>
 #include "GB_zeroin.h"
+#include <R_ext/BLAS.h>
 #include <R_ext/Linpack.h>
 
 extern P_fun *P;

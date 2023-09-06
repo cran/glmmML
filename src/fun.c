@@ -11,6 +11,7 @@
 #include "glmmml.h"
 #include "fun.h"
 #include <Rmath.h>
+#include <R_ext/BLAS.h>
 #include <R_ext/Linpack.h>
 #include <R_ext/Applic.h>
 #include "GB_zeroin.h"

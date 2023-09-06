@@ -1,3 +1,6 @@
+1.1.5  (September 6, 2023)
+	* Added "#include <R_ext/BLAS.h>" to relevant .c files.
+	
 1.1.4  (October 26, 2022)
 	* ghq.f, GB_zeroin.c: Changed file encoding to UTF-8.
 

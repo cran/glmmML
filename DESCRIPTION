@@ -1,7 +1,7 @@
 Encoding: UTF-8
 Package: glmmML
-Version: 1.1.4
-Date: 2022-10-26
+Version: 1.1.5
+Date: 2023-09-06
 Title: Generalized Linear Models with Clustering
 Description: Binomial and Poisson regression for clustered data, fixed
         and random effects with bootstrapping.
@@ -15,9 +15,9 @@ Maintainer: Göran Broström <goran.brostrom@umu.se>
 NeedsCompilation: yes
 Suggests: knitr, rmarkdown, lme4
 VignetteBuilder: knitr
-Packaged: 2022-10-26 21:07:22 UTC; gobr0002
+Packaged: 2023-09-06 19:32:16 UTC; gobr0002
 Author: Göran Broström [aut, cre],
   Jianming Jin [ctb],
   Henrik Holmberg [ctb]
 Repository: CRAN
-Date/Publication: 2022-10-26 22:25:09 UTC
+Date/Publication: 2023-09-06 20:12:32 UTC
