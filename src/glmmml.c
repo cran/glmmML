@@ -86,7 +86,7 @@ void glmm_ml(int *family,
     int * nbd;
 /*    double factr = 1e7; */
 /*    double pgtol = 0.0; */
-    char msg[60];
+/*    char msg[60]; */
 #endif
     Exts *ext;
     int i, j, k, m, indx;
@@ -253,13 +253,13 @@ void glmm_ml(int *family,
 */  
 /*    error("Let us stop here"); */
 
-	vmax = vmaxget();
+    vmax = vmaxget();
 	
-	vmmin(bdim, b, &Fmin,
-	      fun, fun1, *maxit, *trace,
-	      mask, abstol, reltol, nREPORT,
-	      ext, &fncount, &grcount, &fail);
-	vmaxset(vmax);
+    vmmin(bdim, b, &Fmin,
+	  fun, fun1, *maxit, *trace,
+	  mask, abstol, reltol, nREPORT,
+	  ext, &fncount, &grcount, &fail);
+    vmaxset(vmax);
 /*    }else{
 	vmax = vmaxget();
 	lbfgsb(bdim, lmm, b, lower, upper, nbd, &Fmin,
@@ -273,7 +273,7 @@ void glmm_ml(int *family,
 	Rprintf("[glmmml] fail = %d\n", fail);
 	if (fail == 1) 
 	    Rprintf("Max. No. of iterations reached without convergence");
-	warning(msg);
+	warning("No convergence"); 
     }
 /*
     fun1(bdim, b, gr, ext);

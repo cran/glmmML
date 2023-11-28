@@ -1,5 +1,5 @@
-0e070b207688a43ce3349a2b6f26a338 *ChangeLog
-967c5204df36c4b578b8de01b320fe8b *DESCRIPTION
+4f8b961734d4960a21eb3949ee26feb9 *ChangeLog
+04519fcc57fcdc78fdaffd463586b3a6 *DESCRIPTION
 a3d4b9c7c21166ee24c190dbace4ddcf *NAMESPACE
 48666f21b06b7dd8fb7af6204211b69b *R/extract.R
 3319e3b3f111c246f2f5fad0d6a7cc16 *R/ghq.R
@@ -15,7 +15,7 @@ af1559ff5197b968c3c0ed715f81eaa5 *R/summary.glmmML.R
 77a9a3c901d58cd33e6f2ef3e3a70318 *ToDo
 5f4a5f2812187c8dc53cdea633d34953 *build/vignette.rds
 758832777997cbce4027d2ae9547c837 *inst/doc/glmmML.Rnw
-dccf89f242085319d3cb4f7c019196b0 *inst/doc/glmmML.pdf
+e41637dac5a10643d7dab8acbbb540ee *inst/doc/glmmML.pdf
 de196ffe6125feb9299a654babbf3665 *man/ghq.Rd
 5f597e798ce8ed90b657534f03a62354 *man/glmmML.Rd
 e5476a2b4830b2f2e283a1e06ced78ae *man/glmmML.fit.Rd
@@ -38,7 +38,7 @@ b4cb434c9c55aa4603a1e2e517900950 *src/ghq.f
 ae936ef6d749401c2bf4a73432f1d9c3 *src/glmmb0.c
 962a7832b58b65393ad5468225d88938 *src/glmmboot.c
 ddac5160713e5af88da427a6e9534501 *src/glmmboot.h
-e8f1cfd00527cad1bebb8d6f4d01d8ac *src/glmmml.c
+95aba4929c11fdcbcef0a081b93608a5 *src/glmmml.c
 68d01e380e386ed0e3d20ad36c4c3c9c *src/glmmml.h
 9dae8161574281be195ae00d86bcf8f4 *src/init.c
 51f4ba8721536ddebe3c0ae9a8808d5f *vignettes/cluster.bib
