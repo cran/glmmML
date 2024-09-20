@@ -123,7 +123,7 @@ void glmm_ml(int *family,
 	Rprintf(" p = %d\n\n", *p);
     }
 
-    det = Calloc(2, double);
+    det = R_Calloc(2, double);
 
     if (*family == 0){
 	P = &P_logit;
@@ -172,11 +172,11 @@ void glmm_ml(int *family,
 
     bdim = *p + 1;
     lwork = 11 * bdim;
-    work = Calloc(lwork, double);
+    work = R_Calloc(lwork, double);
 
-    lower = Calloc(bdim, double);
-    upper = Calloc(bdim, double);
-    nbd = Calloc(bdim, int);
+    lower = R_Calloc(bdim, double);
+    upper = R_Calloc(bdim, double);
+    nbd = R_Calloc(bdim, int);
     for (j = 0; j < bdim; j++){
 	nbd[j] = 0;
 	upper[j] = 0.0;
@@ -184,15 +184,15 @@ void glmm_ml(int *family,
     }
     nbd[bdim - 1] = 1;
     lower[bdim - 1] = 0.5e-10;
-    b = Calloc(bdim, double);
-    gr = Calloc(bdim, double);
+    b = R_Calloc(bdim, double);
+    gr = R_Calloc(bdim, double);
 
-    hessian = Calloc(bdim, double *);
-    hess_vec = Calloc(bdim * bdim, double);
+    hessian = R_Calloc(bdim, double *);
+    hess_vec = R_Calloc(bdim * bdim, double);
     for (j = 0; j < bdim; j++) hessian[j] = hess_vec + j * bdim;
 
     /**** Build up 'ext' ********************/
-    ext = Calloc(1, Exts);
+    ext = R_Calloc(1, Exts);
 
     ext->family = *family; /* == 0 for binomial(logit) */
 
@@ -203,15 +203,15 @@ void glmm_ml(int *family,
     ext->p = *p;
     ext->cluster = cluster;
     /* Changed 2006-06-18; may have catastrophic consequences!! */
-    ext->x = Calloc(ext->p, double *);
+    ext->x = R_Calloc(ext->p, double *);
     for (i = 0; i < ext->p; i++){
 	ext->x[i] = x + i * (ext->n);
     }
     /*** Note that ext->x is not "filled"; ***/ 
     /*** only points to the right place    ***/
     ext->offset = offset;
-    ext->x_beta = Calloc(ext->n, double);
-    ext->yw = Calloc(ext->n, double); /* We cannot copy if bootstrapping! */
+    ext->x_beta = R_Calloc(ext->n, double);
+    ext->yw = R_Calloc(ext->n, double); /* We cannot copy if bootstrapping! */
     for (i = 0; i < ext->n; i++){
 	ext->yw[i] = y[i] * weights[i]; /* NOTE !!! */
     }
@@ -220,11 +220,11 @@ void glmm_ml(int *family,
     ext->cluster_weights = cluster_weights;
     ext->n_fam = *n_fam;
     ext->fam_size = fam_size;
-    ext->post_mode = Calloc(*n_fam, double); 
-    ext->post_mean = Calloc(*n_fam, double); 
+    ext->post_mode = R_Calloc(*n_fam, double); 
+    ext->post_mean = R_Calloc(*n_fam, double); 
     ext->n_points = *n_points;
-    ext->wc = Calloc(*n_points, double);
-    ext->zeros = Calloc(*n_points, double);
+    ext->wc = R_Calloc(*n_points, double);
+    ext->zeros = R_Calloc(*n_points, double);
     F77_CALL(ghq)(n_points, ext->zeros, ext->wc, &modified);  
 
 /******* Done with 'ext' ***************/
@@ -235,7 +235,7 @@ void glmm_ml(int *family,
 /* NOTE; here we do not log sigma!!! */
     b[*p] = *start_sigma;
 
-    mask = Calloc(bdim, int );
+    mask = R_Calloc(bdim, int );
     for (i = 0; i < bdim; i++){
         mask[i] = 1;
     }
@@ -451,25 +451,25 @@ void glmm_ml(int *family,
 	
     }
     
-    Free(mask);
+    R_Free(mask);
 
-    Free(ext->zeros);
-    Free(ext->wc);
+    R_Free(ext->zeros);
+    R_Free(ext->wc);
 
-    Free(ext->post_mean);
-    Free(ext->post_mode);
-    Free(ext->x_beta);
-    Free(ext->yw);
-    Free(ext->x);
-    Free(ext);
+    R_Free(ext->post_mean);
+    R_Free(ext->post_mode);
+    R_Free(ext->x_beta);
+    R_Free(ext->yw);
+    R_Free(ext->x);
+    R_Free(ext);
 
-    Free(hessian);
-    Free(hess_vec);
-    Free(gr);
-    Free(b);
-    Free(upper);
-    Free(lower);
-    Free(nbd);
-    Free(work);
-    Free(det);
+    R_Free(hessian);
+    R_Free(hess_vec);
+    R_Free(gr);
+    R_Free(b);
+    R_Free(upper);
+    R_Free(lower);
+    R_Free(nbd);
+    R_Free(work);
+    R_Free(det);
 }

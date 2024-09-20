@@ -1,5 +1,8 @@
+1.1.7  (September 20, 2024)
+        * .c: Fixed Calloc, Free --> R_Calloc, R_Free.
+
 1.1.6  (November 28, 2023)
-        * glmmml.c: Wrong error message fixed
+        * glmmml.c: Wrong error message fixed.
 
 1.1.5  (September 6, 2023)
 	* Added "#include <R_ext/BLAS.h>" to relevant .c files.

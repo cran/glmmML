@@ -95,12 +95,12 @@ void glmm_boot(int *family,
 
     bdim = *p;
     lwork = 11 * (*p);
-    work = Calloc(lwork, double);
-    det = Calloc(2, double);
+    work = R_Calloc(lwork, double);
+    det = R_Calloc(2, double);
 
-    gr = Calloc(bdim, double);
-    hessian = Calloc(bdim, double *);
-    hess_vec = Calloc(bdim * bdim, double);
+    gr = R_Calloc(bdim, double);
+    hessian = R_Calloc(bdim, double *);
+    hess_vec = R_Calloc(bdim * bdim, double);
     for (j = 0; j < bdim; j++) hessian[j] = hess_vec + j * bdim;
 
     GetRNGstate(); /* For random number generation */
@@ -126,8 +126,8 @@ void glmm_boot(int *family,
     abstol = 0.00000001;
     reltol = abstol;
 
-    ext = Calloc(1, Extb);
-    clust = Calloc(*n_fam, Cluster);
+    ext = R_Calloc(1, Extb);
+    clust = R_Calloc(*n_fam, Cluster);
 /************************ Fill in ext: *****************/
     ext->family = *family; /* == 0 for binomial(logit) */
 
@@ -144,11 +144,11 @@ void glmm_boot(int *family,
     for (cl = 0; cl < ext->n_clust; cl++){
 	clust[cl].n = fam_size[cl];
 	clust[cl].p = ext->p;
-	clust[cl].yw = Calloc(clust[cl].n, double);
-	clust[cl].lin = Calloc(clust[cl].n, double);
+	clust[cl].yw = R_Calloc(clust[cl].n, double);
+	clust[cl].lin = R_Calloc(clust[cl].n, double);
 	clust[cl].weight = weights + indx;
 	clust[cl].offset = offset + indx;
-	clust[cl].x = Calloc(clust[cl].n, double *); /* KOLLA!!! */
+	clust[cl].x = R_Calloc(clust[cl].n, double *); /* KOLLA!!! */
 	for (i = 0; i < clust[cl].n; i++){
 	    clust[cl].x[i] = x + indx * (ext->p);
 	    clust[cl].yw[i] = weights[indx] * y[indx];
@@ -184,9 +184,9 @@ void glmm_boot(int *family,
     if (!ant_fam_out) 
 	error("All clusters are 'trivial' (all zeros or all ones)");
 
-    mask = Calloc(ext->p, int);    
+    mask = R_Calloc(ext->p, int);    
 
-    b = Calloc(ext->p, double);
+    b = R_Calloc(ext->p, double);
 
 
 
@@ -376,21 +376,21 @@ void glmm_boot(int *family,
 
 /*    vmaxset(vmax1); */
 
-    Free(gr);
-    Free(hessian);
-    Free(hess_vec);
-    Free(det);
-    Free(work);
+    R_Free(gr);
+    R_Free(hessian);
+    R_Free(hess_vec);
+    R_Free(det);
+    R_Free(work);
 
     for (i = 0; i < ext->n_clust; i++){
-	Free(clust[i].yw);
-	Free(clust[i].x);
-	Free(clust[i].lin);
+	R_Free(clust[i].yw);
+	R_Free(clust[i].x);
+	R_Free(clust[i].lin);
     }
 
-    Free(clust);
-    Free(ext);
+    R_Free(clust);
+    R_Free(ext);
 
-    Free(mask);
-    Free(b);
+    R_Free(mask);
+    R_Free(b);
 }

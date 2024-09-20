@@ -86,8 +86,8 @@ void glmm_boot0(int *family,
 /*    abstol = 0.00000001; */
 /*    reltol = abstol; */
 
-    ext = Calloc(1, Extb);
-    clust = Calloc(*n_fam, Cluster);
+    ext = R_Calloc(1, Extb);
+    clust = R_Calloc(*n_fam, Cluster);
 /************************ Fill in ext: *****************/
     ext->family = *family; /* == 0 for binomial(logit) */
 
@@ -104,8 +104,8 @@ void glmm_boot0(int *family,
     for (cl = 0; cl < ext->n_clust; cl++){
 	clust[cl].n = fam_size[cl];
 	clust[cl].p = ext->p;
-	clust[cl].yw = Calloc(clust[cl].n, double);
-	clust[cl].lin = Calloc(clust[cl].n, double);
+	clust[cl].yw = R_Calloc(clust[cl].n, double);
+	clust[cl].lin = R_Calloc(clust[cl].n, double);
 	clust[cl].weight = weights + indx;
 	clust[cl].offset = offset + indx;
 	for (i = 0; i < clust[cl].n; i++){
@@ -237,10 +237,10 @@ void glmm_boot0(int *family,
 /*    vmaxset(vmax1); */
     
     for (i = 0; i < ext->n_clust; i++){
-	Free(clust[i].yw);
-	Free(clust[i].x);
-	Free(clust[i].lin);
+	R_Free(clust[i].yw);
+	R_Free(clust[i].x);
+	R_Free(clust[i].lin);
     }
 
-    Free(ext);
+    R_Free(ext);
 }

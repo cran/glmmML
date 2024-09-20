@@ -289,9 +289,9 @@ void bfun_hess(int p, double *b, double *hessian, Extb *ext){
     
     clust = ext->clust;
 
-    h = Calloc(ext->n, double);
-    h_fam = Calloc(ext->n_clust, double);
-    hess = Calloc(p, double *);
+    h = R_Calloc(ext->n, double);
+    h_fam = R_Calloc(ext->n_clust, double);
+    hess = R_Calloc(p, double *);
     for (m = 0; m < p; m++){
 	hess[m] = hessian + m * p;
     }
@@ -357,8 +357,8 @@ void bfun_hess(int p, double *b, double *hessian, Extb *ext){
 	    hess[m][s] = hess[s][m];
 	}
     }
-    Free(hess);
-    Free(h_fam);
-    Free(h);
+    R_Free(hess);
+    R_Free(h_fam);
+    R_Free(h);
 }
    

@@ -986,8 +986,8 @@ static void update(int level,
 
     if (level < 0) return;
 
-    u = Calloc(n_points, double);
-    wght = Calloc(n_points, double);
+    u = R_Calloc(n_points, double);
+    wght = R_Calloc(n_points, double);
 
     for (i = 0; i < n_points; i++){
 /* Should be moved to 'ghq.f' after testing! DONE now!!*/
@@ -1002,8 +1002,8 @@ static void update(int level,
 /*    yw = fam->yw; */
 
     lenw = 4 * limit;
-    iwork = Calloc(limit, int);
-    work = Calloc(lenw, double);
+    iwork = R_Calloc(limit, int);
+    work = R_Calloc(lenw, double);
 
 /*    sigma = beta[p]; */
 
@@ -1075,10 +1075,10 @@ static void update(int level,
     }
 
     if (level == 0) {
-	Free(u);
-	Free(wght);
-	Free(iwork);
-	Free(work);
+	R_Free(u);
+	R_Free(wght);
+	R_Free(iwork);
+	R_Free(work);
 	return;
     }
 
@@ -1088,14 +1088,14 @@ static void update(int level,
 
 /* level >= 1 */
 
-    u_m = Calloc(p + 1, double); /* must be changed for GHQ (n_points > 1)!! */
+    u_m = R_Calloc(p + 1, double); /* must be changed for GHQ (n_points > 1)!! */
 
     for (i = 0; i < p; i++) 
 	u_m[i] = sigma2_hat * g_um(u_hat, i, ex);
     u_s = sigma2_hat * g_us(u_hat, ex);
     u_m[p] = u_s;
 
-    sh_m = Calloc(p + 1, double); /* must be changed for GHQ (n_points > 1)!! */
+    sh_m = R_Calloc(p + 1, double); /* must be changed for GHQ (n_points > 1)!! */
 
     guuu = g_uuu(u_hat, ex);
     for (i = 0; i < p; i++) 
@@ -1106,7 +1106,7 @@ static void update(int level,
     sh_m[p] = sh_s;
 /*******************************************************************/
 
-    hb = Calloc((p + 1), double);
+    hb = R_Calloc((p + 1), double);
 
 
     for (m = 0; m <= p; m++){ /* hb[m]; note w = log(sigma) INCLUDED! */
@@ -1164,13 +1164,13 @@ static void update(int level,
     }
 
     if (level == 1){
-	Free(u);
-	Free(wght);
-	Free(hb);
-	Free(iwork);
-	Free(work);
-	Free(u_m);
-	Free(sh_m);
+	R_Free(u);
+	R_Free(wght);
+	R_Free(hb);
+	R_Free(iwork);
+	R_Free(work);
+	R_Free(u_m);
+	R_Free(sh_m);
 
 	return;
     }
@@ -1180,9 +1180,9 @@ static void update(int level,
 
 /* level >= 2 */
 
-    u_sm = Calloc(p + 1, double);
-    u_mkvec = Calloc((p + 1) * (p + 1), double);
-    u_mk = Calloc(p + 1, double *);
+    u_sm = R_Calloc(p + 1, double);
+    u_mkvec = R_Calloc((p + 1) * (p + 1), double);
+    u_mk = R_Calloc(p + 1, double *);
     for (m = 0; m <= p; m++){
 	u_mk[m] = u_mkvec + m * (p + 1);
     }
@@ -1209,9 +1209,9 @@ static void update(int level,
     }
 /*    for (m = 0; m < p; m++)Rprintf("u_sm[%d] = %f\n", m, u_sm[m]); */
 
-    sh_sm = Calloc(p + 1, double);
-    sh_mkvec = Calloc((p + 1) * (p + 1), double);
-    sh_mk = Calloc(p + 1, double *);
+    sh_sm = R_Calloc(p + 1, double);
+    sh_mkvec = R_Calloc((p + 1) * (p + 1), double);
+    sh_mk = R_Calloc(p + 1, double *);
     for (m = 0; m <= p; m++){
 	sh_mk[m] = sh_mkvec + m * (p + 1);
     }
@@ -1250,7 +1250,7 @@ static void update(int level,
 
 /********************************************************************/
 
-    hbb = Calloc((p + 1) * (p + 1), double);
+    hbb = R_Calloc((p + 1) * (p + 1), double);
 
     /* First the pxp matrix of 'coefficients': */
     /* Now: Everything at once!! (2008-05-24) */
@@ -1337,22 +1337,22 @@ static void update(int level,
 
 /*********************************************************************/
 /* We are done! Clean up 'the mess'! */
-    Free(u);
-    Free(wght);
-    Free(hbb);
-    Free(hb);
-    Free(iwork);
-    Free(work);
+    R_Free(u);
+    R_Free(wght);
+    R_Free(hbb);
+    R_Free(hb);
+    R_Free(iwork);
+    R_Free(work);
 
-    Free(u_m);
-    Free(u_sm);
-    Free(u_mkvec);
-    Free(u_mk);
+    R_Free(u_m);
+    R_Free(u_sm);
+    R_Free(u_mkvec);
+    R_Free(u_mk);
 
-    Free(sh_m);
-    Free(sh_sm);
-    Free(sh_mkvec);
-    Free(sh_mk);
+    R_Free(sh_m);
+    R_Free(sh_sm);
+    R_Free(sh_mkvec);
+    R_Free(sh_mk);
 
 }
 
@@ -1416,8 +1416,8 @@ void frail_fun(int pp1,
 
     ext = ex;
 
-    fam = Calloc(1, Family);
-    fam->x = Calloc(ext->p, double *);
+    fam = R_Calloc(1, Family);
+    fam->x = R_Calloc(ext->p, double *);
     fam->p = ext->p;
     fam->m = 0;
     fam->k = 0;
@@ -1464,8 +1464,8 @@ void frail_fun(int pp1,
 	
 	start += ext->fam_size[i];
     }
-    Free(fam->x);
-    Free(fam);
+    R_Free(fam->x);
+    R_Free(fam);
 }
 
 void mu_fun(int bdim, double *b, double *mu, void *ex){
@@ -1517,8 +1517,8 @@ double fun(int pp1,
 
     ext = ex;
 
-    fam = Calloc(1, Family);
-    fam->x = Calloc(ext->p, double *);
+    fam = R_Calloc(1, Family);
+    fam->x = R_Calloc(ext->p, double *);
     fam->p = ext->p;
     fam->m = 0;
     fam->k = 0;
@@ -1568,8 +1568,8 @@ double fun(int pp1,
 	ext->post_mode[i] = post_mode;
 	start += ext->fam_size[i];
     }
-    Free(fam->x);
-    Free(fam);
+    R_Free(fam->x);
+    R_Free(fam);
     /* Rprintf("[fun]; -loglik = %f\n", -loglik); */ 
     return ( -loglik ); /* Note: minimizing!!! */
 }
@@ -1604,8 +1604,8 @@ void fun1(int pp1,
  
     ext = ex;
 
-    fam = Calloc(1, Family);
-    fam->x = Calloc(ext->p, double *);
+    fam = R_Calloc(1, Family);
+    fam->x = R_Calloc(ext->p, double *);
     fam->p = ext->p;
     fam->m = 0;
     fam->k = 0;
@@ -1666,8 +1666,8 @@ void fun1(int pp1,
 */
     }
 
-    Free(fam->x);
-    Free(fam);
+    R_Free(fam->x);
+    R_Free(fam);
 }
 
 void fun2(int pp1, 
@@ -1693,8 +1693,8 @@ void fun2(int pp1,
 
     ext = ex;
 
-    fam = Calloc(1, Family);
-    fam->x = Calloc(ext->p, double *);
+    fam = R_Calloc(1, Family);
+    fam->x = R_Calloc(ext->p, double *);
     fam->p = ext->p;
     fam->m = 0;
     fam->k = 0;
@@ -1752,6 +1752,6 @@ void fun2(int pp1,
     for (i = 0; i < pp1 * pp1; i++){
 	hessian[i] = -hessian[i];
     }
-    Free(fam->x);
-    Free(fam);
+    R_Free(fam->x);
+    R_Free(fam);
 }
